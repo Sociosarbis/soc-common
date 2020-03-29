@@ -1,0 +1,44 @@
+{
+  "name": "soc-common",
+  "version": "1.0.0",
+  "description": "a collection of common utilily functions",
+  "repository": "git@github.com:Sociosarbis/soc-common.git",
+  "author": "Sociosarbis <136657577@qq.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@commitlint/cli": "^8.3.5",
+    "@commitlint/config-conventional": "^8.3.4",
+    "@vue/eslint-config-prettier": "^6.0.0",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^6.8.0",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-simple-import-sort": "^5.0.2",
+    "eslint-plugin-vue": "^6.2.2",
+    "husky": "^4.2.3",
+    "lint-staged": "^10.0.9",
+    "prettier": "^2.0.2",
+    "stylelint": "^13.2.1",
+    "stylelint-config-prettier": "^8.0.1",
+    "stylelint-config-recess-order": "^2.0.4",
+    "stylelint-config-standard": "^20.0.0",
+    "stylelint-order": "^4.0.0",
+    "stylelint-scss": "^3.16.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "lint-staged": {
+    "src/**/*.{js, vue}": [
+      "eslint --fix",
+      "git add"
+    ],
+    "src/**/*.{html,vue,css,sass,scss}": [
+      "stylelint --fix",
+      "git add"
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+@function mix-black($color, $amount) {
+  @return mix(#000, $color, $amount);
+}
+
+@mixin touch-react-contained($back) {
+  &:active {
+    background-color: mix-black($back, 30%);
+  }
+}
+
+@mixin touch-react-text($fore) {
+  &:active {
+    background-color: rgba($fore, 0.04);
+  }
+}

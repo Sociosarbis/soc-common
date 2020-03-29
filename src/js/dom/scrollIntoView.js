@@ -1,0 +1,102 @@
+import Tween from '../task/tween'
+
+const axes = {
+  x: {
+    start: 'left',
+    end: 'right',
+    scalar: 'width',
+    overflow: 'overflowX',
+    scroll: 'scrollLeft',
+    borderWidth: 'borderLeftWidth',
+    clientScalar: 'clientWidth',
+    scrollScalar: 'scrollWidth',
+    windowScalar: 'innerWidth'
+  },
+  y: {
+    start: 'top',
+    end: 'bottom',
+    scalar: 'height',
+    overflow: 'overflowY',
+    scroll: 'scrollTop',
+    borderWidth: 'borderTopWidth',
+    clientScalar: 'clientHeight',
+    scrollScalar: 'scrollHeight',
+    windowScalar: 'innerHeight'
+  }
+}
+
+export function getScrollingElement() {
+  return document.scrollingElement || document.documentElement
+}
+
+export default function scrollIntoView(el, target = {}, isSmooth = false) {
+  let cur = el.parentElement
+  const rect = el.getBoundingClientRect()
+  target.x = target.x || rect.left
+  target.y = target.y || rect.top
+  let ctx = ['x', 'y'].reduce(function (acc, axis) {
+    var axisInfo = axes[axis]
+    acc[axisInfo.start] = rect[axisInfo.start]
+    acc[axisInfo.scalar] = rect[axisInfo.scalar]
+    return acc
+  }, {})
+  while (cur) {
+    const computedStyle = getComputedStyle(cur)
+    const curRect = cur.getBoundingClientRect()
+    const scrollDist = ['x', 'y'].reduce(
+      function (acc, axis, index) {
+        var axisInfo = axes[axis]
+        var overflow = computedStyle[axisInfo.overflow]
+        if (
+          ((overflow !== 'visible' && overflow !== 'hidden') || cur === getScrollingElement()) &&
+          cur[axisInfo.scrollScalar] > cur[axisInfo.clientScalar]
+        ) {
+          const curRectStart =
+            cur === getScrollingElement()
+              ? 0
+              : curRect[axisInfo.start] + parseFloat(computedStyle[axisInfo.borderWidth])
+          const curRectEnd = curRectStart + cur[axisInfo.clientScalar]
+          const maxScroll = cur[axisInfo.scrollScalar] - cur[axisInfo.clientScalar]
+          const delta = maxScroll - cur[axisInfo.scroll]
+          const deltaToTarget = target[axis] - ctx[axisInfo.start]
+          let startDelta = ctx[axisInfo.start] - curRectStart
+          let endDelta = ctx[axisInfo.start] + ctx[axisInfo.scalar] - curRectEnd
+          if (startDelta < 0 || endDelta <= 0) {
+            startDelta = Math.min(Math.max(-deltaToTarget, endDelta), startDelta)
+            let scrollDist = -startDelta > cur[axisInfo.scroll] ? -cur[axisInfo.scroll] : startDelta
+            acc[index] = scrollDist
+            ctx[axisInfo.start] -= scrollDist
+          } else {
+            if (delta > 0) {
+              endDelta = Math.max(Math.min(-deltaToTarget, startDelta), endDelta)
+              const scrollDist = endDelta > delta ? delta : endDelta
+              acc[index] = scrollDist
+              ctx[axisInfo.start] -= scrollDist
+            }
+          }
+        }
+        return acc
+      },
+      [0, 0]
+    )
+    if (scrollDist[0] || scrollDist[1]) {
+      if (isSmooth) {
+        const beginX = cur[axes.x.scroll]
+        const beginY = cur[axes.y.scroll]
+        const curEl = cur
+        const anime = Tween({ duration: 250 }, (t, fn) => {
+          try {
+            curEl[axes.x.scroll] = fn(beginX, scrollDist[0])
+            curEl[axes.y.scroll] = fn(beginY, scrollDist[1])
+          } catch {
+            anime.clear()
+          }
+        }).run()
+      } else {
+        cur[axes.x.scroll] += scrollDist[0]
+        cur[axes.y.scroll] += scrollDist[1]
+      }
+    }
+    cur = cur.parentElement
+  }
+}

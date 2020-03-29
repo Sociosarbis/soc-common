@@ -1,0 +1,8 @@
+$--small-duration: 100ms;
+$--medium-duration-in: 250ms;
+$--medium-duration-out: 200ms;
+$--large-duration-in: 300ms;
+$--large-duration-out: 250ms;
+$--standard-easing: cubic-bezier(0.4, 0, 0.2, 1);
+$--accelerated-easing: cubic-bezier(0.4, 0, 1, 1);
+$--decelerated-easing: cubic-bezier(0, 0, 0.2, 1);
