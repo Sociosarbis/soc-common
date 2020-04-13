@@ -32,8 +32,8 @@ export function getScrollingElement() {
 export default function scrollIntoView(el, target = {}, isSmooth = false) {
   let cur = el.parentElement
   const rect = el.getBoundingClientRect()
-  target.x = target.x || rect.left
-  target.y = target.y || rect.top
+  target.x = isNaN(target.x) ? rect.left : target.x
+  target.y = isNaN(target.y) ? rect.top : target.y
   let ctx = ['x', 'y'].reduce(function (acc, axis) {
     var axisInfo = axes[axis]
     acc[axisInfo.start] = rect[axisInfo.start]
