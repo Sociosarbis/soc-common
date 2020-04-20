@@ -46,7 +46,7 @@ $display-list: hidden, block, inline-block, inline, flex, inline-flex;
     line-height: 1.5;
   }
   &-relaxed {
-    line-height: 1.625
+    line-height: 1.625;
   }
   &-loose {
     line-height: 2;
@@ -140,4 +140,29 @@ $direction-list: row, column;
 // Flex Shrink
 .flex-shrink-0 {
   flex-shrink: 0;
+}
+
+// Margin and Padding
+$directions: top t, right r, bottom b, left l;
+$prop-names: margin m, padding p;
+@for $level from 1 through 4 {
+  @each $long-prop, $short-prop in $prop-names {
+    @each $long, $short in $directions {
+      .#{$short-prop}#{$short}-#{$level} {
+        #{$long-prop}-#{$long}: 0.25rem * $level;
+      }
+    }
+    .#{$short-prop}x-#{$level} {
+      #{$long-prop}-left: 0.25rem * $level;
+      #{$long-prop}-right: 0.25rem * $level;
+    }
+    .#{$short-prop}y-#{$level} {
+      #{$long-prop}-top: 0.25rem * $level;
+      #{$long-prop}-bottom: 0.25rem * $level;
+    }
+
+    .#{$short-prop}-#{$level} {
+      #{$long-prop}: 0.25rem * $level;
+    }
+  }
 }

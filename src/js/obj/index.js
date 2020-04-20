@@ -1,3 +1,5 @@
+import { isUndef } from './is'
+
 function getValueByPath(...path) {
   return (obj) => {
     let target = obj
