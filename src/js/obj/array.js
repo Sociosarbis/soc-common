@@ -18,7 +18,8 @@ function range(...args) {
 }
 
 function flatArray(arr) {
-  const ret = []
-  ret.push(...arr.map((item) => (Array.isArray(item) ? flatArray(item) : item)))
-  return ret
+  return arr.reduce((acc, item) => {
+    Array.isArray(item) ? acc.push(...flatArray(item)) : acc.push(item)
+    return acc
+  }, [])
 }
