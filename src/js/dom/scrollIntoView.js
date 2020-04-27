@@ -25,8 +25,43 @@ const axes = {
   }
 }
 
+let element = null
+function scrollingElement() {
+  if (element) {
+    return element
+  } else if (document.body.scrollTop) {
+    // speed up if scrollTop > 0
+    return (element = document.body)
+  }
+  var iframe = document.createElement('iframe')
+  iframe.style.height = '1px'
+  document.documentElement.appendChild(iframe)
+  var doc = iframe.contentWindow.document
+  doc.write('<!DOCTYPE html><div style="height:9999em">x</div>')
+  doc.close()
+  var isCompliant = doc.documentElement.scrollHeight > doc.body.scrollHeight
+  iframe.parentNode.removeChild(iframe)
+  return (element = isCompliant ? document.documentElement : document.body)
+}
+
 export function getScrollingElement() {
-  return document.scrollingElement || document.documentElement
+  // reference https://github.com/yangg/scrolling-element/blob/master/scrolling-element.js
+  if (document.scrollingElement) return document.scrollingElement
+  if (document.body.scrollTop) {
+    // speed up if scrollTop > 0
+    document.scrollingElement = document.body
+  } else {
+    const iframe = document.createElement('iframe')
+    iframe.style.height = '1px'
+    document.documentElement.appendChild(iframe)
+    const doc = iframe.contentWindow.document
+    doc.write('<!DOCTYPE html><div style="height:9999em">x</div>')
+    doc.close()
+    const isCompliant = doc.documentElement.scrollHeight > doc.body.scrollHeight
+    iframe.parentNode.removeChild(iframe)
+    document.scrollingElement = isCompliant ? document.documentElement : document.body
+  }
+  return document.scrollingElement
 }
 
 export default function scrollIntoView(el, target = {}, isSmooth = false) {
