@@ -1,22 +1,43 @@
+function promisifyTransaction(req) {
+  return new Promise((res, rej, onCancel) => {
+    req.onsuccess = () => {
+      res(req.result)
+    }
+    req.onerror = () => {
+      rej(req.error)
+    }
+    onCancel(() => req.transaction.abort())
+  })
+}
+
 class SoDB {
-  constructor(name) {
+  constructor(name, tables) {
     this._db = null
     this._dbName = name
-    this.connect()
+    this._resolveDbPromise = this.connect(undefined, (db) => {
+      tables.forEach((table) => {
+        if (!db.objectStoreNames.contains(table)) db.createObjectStore(table)
+      })
+    })
   }
 
   /**
+   * @param {number} version
    * @param {(db: IDBDatabase) => any} handleUpgrade
    * @return {Promise<IDBDatabase>}
    */
-  connect(version = 1, handleUpgrade = () => {}) {
-    if (this._db && (!version || (version && version === this._db.version))) return Promise.resolve(this._db)
+  connect(version = undefined, handleUpgrade = () => {}) {
+    if (this._db && (!version || (version && version === this._db.version))) return this._resolveDbPromise
     else {
-      return new Promise((res, rej) => {
+      this._resolveDbPromise = new Promise((res, rej) => {
         const req = indexedDB.open(this._dbName, version)
         req.onsuccess = () => {
           this._db = req.result
           res(this._db)
+        }
+        req.onblocked = () => {
+          this._db.close()
+          this._db = null
         }
         req.onerror = () => {
           rej(req.error)
@@ -25,6 +46,7 @@ class SoDB {
           handleUpgrade.call(this, req.result)
         }
       })
+      return this._resolveDbPromise
     }
   }
 
@@ -46,24 +68,18 @@ class SoDB {
    * @param {string} storeName
    * @param {string} key
    */
-  set(storeName, key) {
+  set(storeName, key, value) {
     return this.connect().then((db) => {
       if (db.objectStoreNames.contains(storeName)) {
         const transaction = db.transaction(storeName, 'readwrite')
         const store = transaction.objectStore(storeName)
-        return new Promise(function (res, rej) {
-          const req = store.get(key)
-          req.onsuccess = function () {
-            res(db)
-          }
-          req.onerror = function () {
-            rej(req.error)
-          }
-        })
+        return promisifyTransaction(store.getKey(key)).then((ret) =>
+          promisifyTransaction(store[ret ? 'put' : 'add'](value, key))
+        )
       } else {
         return this.connect(db.version + 1, (db) => {
           db.createObjectStore(storeName)
-        }).then(() => this.set(storeName, key))
+        }).then(() => this.set(storeName, key, value))
       }
     })
   }
@@ -77,15 +93,7 @@ class SoDB {
       if (db.objectStoreNames.contains(storeName)) {
         const transaction = db.transaction(storeName, 'readonly')
         const store = transaction.objectStore(storeName)
-        return new Promise(function (res, rej) {
-          const req = store.get(key)
-          req.onsuccess = function () {
-            res(req.result)
-          }
-          req.onerror = function () {
-            rej(req.error)
-          }
-        })
+        return promisifyTransaction(store.get(key))
       } else return Promise.resolve()
     })
   }
