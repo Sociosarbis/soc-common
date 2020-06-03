@@ -40,5 +40,8 @@
       "stylelint --fix",
       "git add"
     ]
+  },
+  "dependencies": {
+    "bluebird": "^3.7.2"
   }
 }

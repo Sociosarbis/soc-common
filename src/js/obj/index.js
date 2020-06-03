@@ -14,4 +14,12 @@ function getValueByPath(...path) {
   }
 }
 
-export { getValueByPath }
+function proxyMethod(proto, target, methodNames) {
+  methodNames.forEach((method) => {
+    proto[method] = function (...args) {
+      return this[target][method](...args)
+    }
+  })
+}
+
+export { getValueByPath, proxyMethod }
