@@ -31,6 +31,14 @@ class TaskSet extends Set {
     })
   }
 
+  emit(eventName, handler) {
+    throw new Error('Method not implemented.')
+  }
+
+  on(eventName, handler) {
+    throw new Error('Method not implemented.')
+  }
+
   /**
    *
    * @param {function} creator 创建任务的函数

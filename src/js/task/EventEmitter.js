@@ -1,6 +1,3 @@
-/**
- * @mixin
- */
 export default class EventEmitter {
   constructor() {
     this._bus = new Map()
