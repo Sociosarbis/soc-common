@@ -178,6 +178,7 @@ class SeriesTaskSet extends TaskSet {
       } else if (isFunc(creator.resolve)) {
         creator[SeriesTaskSet.WAITING_REF] = new Set().add(this)
       }
+      this.add(creator)
       return [creator, args]
     } else {
       const p = new ManualPromise(() => creator(...args))
