@@ -47,6 +47,16 @@ class TaskSet extends Set {
   shouldCreateTask(creator, ...args) {
     return true
   }
+  
+   /**
+   *
+   * @param {function|Promise} creator 创建任务的函数或已创建的任务
+   * @param {any[]} args 创建任务用到的参数
+   */
+  createTask(creator, ...args) {
+    if (typeof creator.then === 'function') return [creator, args]
+    return [creator(...args), []]
+  }
 
   beforeAdd(val) {
     if (typeof val.then === 'function') {
@@ -149,11 +159,38 @@ class RaceTaskSet extends TaskSet {
 
 RaceTaskSet.SERVICE_SYMBOL = 'RACE_TASK_SET_SERVICE'
 
+class SeriesTaskSet extends TaskSet {
+   constructor(...args) {
+    super(...args)
+    
+   }
+   createTask(creator, ...args) {
+    if (typeof creator.then === 'function') {
+        if (isNaN(creator[SeriesTaskSet.WAITING_COUNTER_SYMBOL])) creator[SeriesTaskSet.WAITING_COUNTER_SYMBOL] = 0
+        creator[SeriesTaskSet.WAITING_COUNTER_SYMBOL]++
+    }
+    else {
+        const p = new ManualPromise()
+        p[SeriesTaskSet.WAITING_COUNTER_SYMBOL] = 1
+    }
+   }
+}
+
+SeriesTaskSet.WAITING_COUNTER_SYMBOL = 'SERIES_TASK_WAITING_COUNTER'
+
+class ManualPromise extends Promise {
+    constructor() {
+        let resolve
+        super(res => { resolve = res })
+        this.resolve = resolve
+    }
+}
+
 function useTaskSets(arr = []) {
   return function wrap(func) {
     return function scheduleTask(...args) {
       if (arr.every((taskset) => taskset.shouldCreateTask(func, ...args))) {
-        const task = func(...args)
+        const [task] = arr.reduce((acc, taskset) => taskset.createTask(acc[0], ...acc[1]), [func, args])
         arr.forEach((taskSet) => {
           taskSet.add(task)
         })
