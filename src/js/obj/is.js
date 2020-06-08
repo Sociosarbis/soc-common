@@ -2,4 +2,8 @@ function isUndef(obj) {
   return obj === null || typeof obj === 'undefined'
 }
 
-export { isUndef }
+function isFunc(func) {
+  return typeof func === 'function'
+}
+
+export { isUndef, isFunc }

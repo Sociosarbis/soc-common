@@ -1,6 +1,8 @@
 import Promise from 'bluebird'
 
+import { noop } from '../const/common'
 import { proxyMethod } from '../obj'
+import { isFunc, isUndef } from '../obj/is'
 import EventEmitter from './EventEmitter'
 
 class TaskSet extends Set {
@@ -47,19 +49,19 @@ class TaskSet extends Set {
   shouldCreateTask(creator, ...args) {
     return true
   }
-  
-   /**
+
+  /**
    *
    * @param {function|Promise} creator 创建任务的函数或已创建的任务
    * @param {any[]} args 创建任务用到的参数
    */
   createTask(creator, ...args) {
-    if (typeof creator.then === 'function') return [creator, args]
+    if (isFunc(creator.then)) return [creator, args]
     return [creator(...args), []]
   }
 
   beforeAdd(val) {
-    if (typeof val.then === 'function') {
+    if (isFunc(val.then)) {
       if (!val.isPending() || this.has(val)) return false
       return val
     }
@@ -67,7 +69,7 @@ class TaskSet extends Set {
   }
 
   delete(val, silent = false) {
-    if (typeof val.then === 'function') {
+    if (isFunc(val.then)) {
       if (this.has(val)) {
         const _size = this.size
         super.delete(val)
@@ -96,6 +98,10 @@ class TaskSet extends Set {
           oldVal: _size
         })
     }
+  }
+
+  first() {
+    return this.values().next().value
   }
 }
 
@@ -160,30 +166,49 @@ class RaceTaskSet extends TaskSet {
 RaceTaskSet.SERVICE_SYMBOL = 'RACE_TASK_SET_SERVICE'
 
 class SeriesTaskSet extends TaskSet {
-   constructor(...args) {
+  constructor(...args) {
     super(...args)
-    
-   }
-   createTask(creator, ...args) {
-    if (typeof creator.then === 'function') {
-        if (isNaN(creator[SeriesTaskSet.WAITING_COUNTER_SYMBOL])) creator[SeriesTaskSet.WAITING_COUNTER_SYMBOL] = 0
-        creator[SeriesTaskSet.WAITING_COUNTER_SYMBOL]++
+    this.on('size-change', this.handleSizeChange.bind(this))
+  }
+
+  createTask(creator, ...args) {
+    if (isFunc(creator.then)) {
+      if (!isUndef(creator[SeriesTaskSet.WAITING_REF])) {
+        creator[SeriesTaskSet.WAITING_REF].add(this)
+      } else if (isFunc(creator.resolve)) {
+        creator[SeriesTaskSet.WAITING_REF] = new Set().add(this)
+      }
+      return [creator, args]
+    } else {
+      const p = new ManualPromise(() => creator(...args))
+      p[SeriesTaskSet.WAITING_REF] = new Set().add(this)
+      return [p, args]
     }
-    else {
-        const p = new ManualPromise()
-        p[SeriesTaskSet.WAITING_COUNTER_SYMBOL] = 1
+  }
+
+  handleSizeChange({ newVal }) {
+    if (newVal > 0) {
+      /** @type {ManualPromise} */
+      const first = this.first()
+      const refs = first[SeriesTaskSet.WAITING_REF]
+      if (refs) {
+        if (refs.has(this)) refs.delete(this)
+        if (refs.size === 0) first.resolve()
+      }
     }
-   }
+  }
 }
 
-SeriesTaskSet.WAITING_COUNTER_SYMBOL = 'SERIES_TASK_WAITING_COUNTER'
+SeriesTaskSet.WAITING_REF = 'SERIES_TASK_WAITING_REF'
 
 class ManualPromise extends Promise {
-    constructor() {
-        let resolve
-        super(res => { resolve = res })
-        this.resolve = resolve
-    }
+  constructor(promiseResolver = noop) {
+    let resolve
+    super((res) => {
+      resolve = res
+    })
+    this.resolve = () => resolve(promiseResolver())
+  }
 }
 
 function useTaskSets(arr = []) {
