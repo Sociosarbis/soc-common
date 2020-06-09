@@ -23,3 +23,70 @@ function flatArray(arr) {
     return acc
   }, [])
 }
+
+
+class NaiveSet {
+  constructor() {
+    this.arr = []
+  }
+
+  static defaultEqual(a, b) {
+    return a === b
+  }
+
+  static from(arrLike) {
+    const ret = new NaiveSet()
+    if ('length' in arrLike) {
+      for (let i = 0; i < arrLike.length; i++) {
+        ret.add(arrLike[i])
+      }
+    }
+    return ret
+  }
+
+  get size() {
+    return this.arr.length
+  }
+
+  add(item, validateFunc = NaiveSet.defaultEqual) {
+    if (!this.has(item, validateFunc)) this.arr.push(item)
+  }
+
+  delete(item, validateFunc = NaiveSet.defaultEqual) {
+    for (let i = 0; i < this.arr.length; i++) {
+      if (validateFunc(item, this.arr[i])) {
+        this.arr.splice(i, 1)
+        break
+      }
+    }
+  }
+
+  clear() {
+    this.arr.length = 0
+  }
+
+  has(item, validateFunc = NaiveSet.defaultEqual) {
+    for (let i = 0; i < this.arr.length; i++) {
+      if (validateFunc(item, this.arr[i])) return true
+    }
+    return false
+  }
+
+  find(validateFunc = () => false) {
+    for (let i = 0; i < this.arr.length; i++) {
+      if (validateFunc(this.arr[i])) return this.arr[i]
+    }
+  }
+
+  findAll(validateFunc = () => false) {
+    const ret = []
+    for (let i = 0; i < this.arr.length; i++) {
+      if (validateFunc(this.arr[i])) ret.push(this.arr[i])
+    }
+    return ret
+  }
+}
+
+export {
+  NaiveSet
+}
