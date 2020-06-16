@@ -24,7 +24,6 @@ function flatArray(arr) {
   }, [])
 }
 
-
 class NaiveSet {
   constructor() {
     this.arr = []
@@ -72,13 +71,17 @@ class NaiveSet {
     return false
   }
 
-  find(validateFunc = () => false) {
+  forEach(func) {
+    return this.arr.forEach(func)
+  }
+
+  find(validateFunc = (_) => false) {
     for (let i = 0; i < this.arr.length; i++) {
       if (validateFunc(this.arr[i])) return this.arr[i]
     }
   }
 
-  findAll(validateFunc = () => false) {
+  findAll(validateFunc = (_) => false) {
     const ret = []
     for (let i = 0; i < this.arr.length; i++) {
       if (validateFunc(this.arr[i])) ret.push(this.arr[i])
@@ -87,6 +90,4 @@ class NaiveSet {
   }
 }
 
-export {
-  NaiveSet
-}
+export { NaiveSet }

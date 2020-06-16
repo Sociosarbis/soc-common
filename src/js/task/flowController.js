@@ -2,13 +2,16 @@ import Promise from 'bluebird'
 
 import { noop } from '../const/common'
 import { proxyMethod } from '../obj'
-import { isFunc, isUndef } from '../obj/is'
 import { NaiveSet } from '../obj/array'
+import { isFunc, isUndef } from '../obj/is'
 import EventEmitter from './EventEmitter'
 
+/**
+ * @extends {NaiveSet}
+ */
 class TaskSet extends NaiveSet {
-  constructor(...args) {
-    super(...args)
+  constructor() {
+    super()
     this._emitter = new EventEmitter()
   }
 
@@ -24,7 +27,7 @@ class TaskSet extends NaiveSet {
     const _size = this.size
     super.add(target)
     target.finally(() => {
-      if (this.delete(target)) {
+      if (this.remove(target)) {
         if (!target.isCancelled()) this.emit('task-complete', target)
       }
     })
@@ -69,7 +72,7 @@ class TaskSet extends NaiveSet {
     return false
   }
 
-  delete(val, silent = false) {
+  remove(val, silent = false) {
     if (isFunc(val.then)) {
       if (this.has(val)) {
         const _size = this.size
@@ -129,15 +132,14 @@ class TakeLeadingTaskSet extends TaskSet {
   }
 }
 
-class RaceTaskSet extends TaskSet {
+class ManualCancelTaskSet extends TaskSet {
   constructor() {
     super()
     this._services = new Set()
-    this.on('task-complete', this.clear.bind(this))
   }
 
   _add(target) {
-    if (RaceTaskSet.isService(target)) {
+    if (ManualCancelTaskSet.isService(target)) {
       this.addService(target)
       target.finally(() => {
         this.deleteService(target)
@@ -155,20 +157,27 @@ class RaceTaskSet extends TaskSet {
   }
 
   static markService(task) {
-    task[RaceTaskSet.SERVICE_SYMBOL] = 1
+    task[ManualCancelTaskSet.SERVICE_SYMBOL] = 1
     return task
   }
 
   static isService(task) {
-    return task[RaceTaskSet.SERVICE_SYMBOL]
+    return task[ManualCancelTaskSet.SERVICE_SYMBOL]
   }
 }
 
-RaceTaskSet.SERVICE_SYMBOL = 'RACE_TASK_SET_SERVICE'
+ManualCancelTaskSet.SERVICE_SYMBOL = 'RACE_TASK_SET_SERVICE'
+
+class RaceTaskSet extends ManualCancelTaskSet {
+  constructor() {
+    super()
+    this.on('task-complete', this.clear.bind(this))
+  }
+}
 
 class SeriesTaskSet extends TaskSet {
-  constructor(...args) {
-    super(...args)
+  constructor() {
+    super()
     this.on('size-change', this.handleSizeChange.bind(this))
   }
 
@@ -189,19 +198,21 @@ class SeriesTaskSet extends TaskSet {
     }
   }
 
-  delete(val, silent = false) {
+  remove(val, silent = false) {
     const targetCreator = val[SeriesTaskSet.SERIES_TASK_CREATOR]
-    if (isFunc(targetCreator])) {
+    if (isFunc(targetCreator)) {
       const result = [-1, -1]
       let index = 0
-      if (this.arr.find((item, idx) => {
-        if (item[SeriesTaskSet.SERIES_TASK_CREATOR] === targetCreator) result[idx] = index++
-        return index > 1
-      })) {
-        [this.arr[result[0]], this.arr[result[1]]] = [this.arr[result[1]], this.arr[result[0]]]
+      if (
+        this.arr.find((item, idx) => {
+          if (item[SeriesTaskSet.SERIES_TASK_CREATOR] === targetCreator) result[idx] = index++
+          return index > 1
+        })
+      ) {
+        ;[this.arr[result[0]], this.arr[result[1]]] = [this.arr[result[1]], this.arr[result[0]]]
       }
     }
-    return super.delete(val, silent)
+    return super.remove(val, silent)
   }
 
   handleSizeChange({ newVal }) {
@@ -217,8 +228,7 @@ class SeriesTaskSet extends TaskSet {
 }
 
 SeriesTaskSet.WAITING_REF = 'SERIES_TASK_WAITING_REF'
-SeriesTaskSet.WAITING_REF = 'SERIES_TASK_CREATOR'
-
+SeriesTaskSet.SERIES_TASK_CREATOR = 'SERIES_TASK_CREATOR'
 
 function createManualPromise(promiseResolver = noop) {
   let resolve
