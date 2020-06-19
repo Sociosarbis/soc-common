@@ -1,6 +1,20 @@
 class SlideItem {
   constructor(height) {
     this.height = height
+    this.heightCache = null
+  }
+
+  cacheHeight() {
+    this.heightCache = this.height
+    return this
+  }
+
+  getAndRemoveHeightCache() {
+    try {
+      return this.heightCache
+    } finally {
+      this.heightCache = null
+    }
   }
 }
 class SlideWindow {
@@ -43,10 +57,10 @@ class SlideWindow {
       paddingTop + this.items[start].height <
       this.container.scrollTop - this.upperFactor * this.container.offsetHeight
     ) {
-      acc = this.items[start].height
+      acc = this.items[start].cacheHeight().height
       while (start < end) {
         if (paddingTop + acc + this.items[start + 1].height < threshold) {
-          acc += this.items[++start].height
+          acc += this.items[++start].cacheHeight().height
         } else {
           start++
           break
@@ -55,10 +69,14 @@ class SlideWindow {
       paddingTop += acc
       // 当start的上边大于容器顶减一个容器高，则减小start至start的上边小于容器顶减一个容器高
     } else if (paddingTop > threshold) {
-      acc = -this.items[start].height
+      acc = -(this.items[start].heightCache ? this.items[start].getAndRemoveHeightCache() : this.items[start].height)
+      this.items[start].remove
       while (start > 0) {
         if (paddingTop + acc - this.items[start - 1].height >= threshold) {
-          acc -= this.items[--start].height
+          --start
+          acc -= -(this.items[start].heightCache
+            ? this.items[start].getAndRemoveHeightCache()
+            : this.items[start].height)
         } else {
           start--
           break
@@ -70,10 +88,11 @@ class SlideWindow {
     threshold = containerBottom + this.lowerFactor * this.container.offsetHeight
     // 当end的下边小于容器底加一个容器高，则增加end至end的下边大于容器底加一个容器高
     if (offsetTopForEnd + this.items[end].height < threshold) {
-      acc = this.items[end].height
+      acc = this.items[end].heightCache ? this.items[end].getAndRemoveHeightCache() : this.items[end].height
       while (end < this.items.length - 1) {
         if (offsetTopForEnd + acc + this.items[end + 1].height <= threshold) {
-          acc += this.items[++end].height
+          ++end
+          acc += this.items[end].heightCache ? this.items[end].getAndRemoveHeightCache() : this.items[end].height
         } else {
           end++
           break
@@ -82,10 +101,10 @@ class SlideWindow {
       paddingBottom -= acc
       // 当end的上边大于容器底加两个容器高，则减小end至end的上边小于容器底加一个容器高
     } else if (offsetTopForEnd > containerBottom + this.upperFactor * this.container.offsetHeight) {
-      acc = -this.items[end].height
+      acc = -this.items[end].cacheHeight().height
       while (end > 0) {
         if (offsetTopForEnd + acc - this.items[end - 1].height > threshold) {
-          acc -= this.items[--end].height
+          acc -= this.items[--end].cacheHeight().height
         } else {
           end--
           break
