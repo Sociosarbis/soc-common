@@ -6,9 +6,6 @@ import { NaiveSet } from '../obj/array'
 import { isFunc, isUndef } from '../obj/is'
 import EventEmitter from './EventEmitter'
 
-/**
- * @extends {NaiveSet}
- */
 class TaskSet extends NaiveSet {
   constructor() {
     super()
@@ -64,6 +61,9 @@ class TaskSet extends NaiveSet {
     return [creator(...args), []]
   }
 
+  /**
+   * 判断是否是一个合法的任务
+   */
   beforeAdd(val) {
     if (isFunc(val.then)) {
       if (!val.isPending() || this.has(val)) return false
@@ -109,8 +109,10 @@ class TaskSet extends NaiveSet {
   }
 }
 
+// 将方法代理到_emitter属性上
 proxyMethod(TaskSet.prototype, '_emitter', ['on', 'off', 'emit'])
 
+// 只取最后一个任务，当有任务需要加入时，取消正在进行的任务
 class TakeLatestTaskSet extends TaskSet {
   beforeAdd(val) {
     const target = super.beforeAdd(val)
@@ -121,6 +123,7 @@ class TakeLatestTaskSet extends TaskSet {
   }
 }
 
+// 当有正在进行的任务时，不添加新任务并取消新任务
 class TakeLeadingTaskSet extends TaskSet {
   shouldCreateTask() {
     return this.size === 0
@@ -132,6 +135,7 @@ class TakeLeadingTaskSet extends TaskSet {
   }
 }
 
+// _services可看作是一个基于Promise的事件触发器，当触发时取消队列中的所有任务
 class ManualCancelTaskSet extends TaskSet {
   constructor() {
     super()
@@ -168,6 +172,7 @@ class ManualCancelTaskSet extends TaskSet {
 
 ManualCancelTaskSet.SERVICE_SYMBOL = 'RACE_TASK_SET_SERVICE'
 
+// RaceTaskSet跟ManualTaskSet相比多了一个当有Promise resolve时，取消所有其他Promise的机制
 class RaceTaskSet extends ManualCancelTaskSet {
   constructor() {
     super()
@@ -175,6 +180,7 @@ class RaceTaskSet extends ManualCancelTaskSet {
   }
 }
 
+// 队列中的任务按顺序进行的TaskSet
 class SeriesTaskSet extends TaskSet {
   constructor() {
     super()
@@ -230,6 +236,7 @@ class SeriesTaskSet extends TaskSet {
 SeriesTaskSet.WAITING_REF = 'SERIES_TASK_WAITING_REF'
 SeriesTaskSet.SERIES_TASK_CREATOR = 'SERIES_TASK_CREATOR'
 
+// 创建可手动resolve的Promsie
 function createManualPromise(promiseResolver = noop) {
   let resolve
   const p = new Promise(function (res) {
@@ -239,7 +246,12 @@ function createManualPromise(promiseResolver = noop) {
   return p
 }
 
+/**
+ *
+ * @param {TaskSet[]} arr
+ */
 function useTaskSets(arr = []) {
+  // 接收一个创建task的func，func返回的task会加入到事先设置好的每个taskset中
   return function wrap(func) {
     return function scheduleTask(...args) {
       if (arr.every((taskset) => taskset.shouldCreateTask(func, ...args))) {
