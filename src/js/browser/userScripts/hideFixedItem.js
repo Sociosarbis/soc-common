@@ -3,10 +3,15 @@
  */
 function hideFixedItem() {
   const ELEMENT_NODE_TYPE = 1
+  /**
+   * @param {Node} target
+   */
   function hideFixedEl(target) {
     if (target.nodeType !== ELEMENT_NODE_TYPE) return
+    // @ts-ignore
     const computedStyle = getComputedStyle(target)
     if (computedStyle.position === 'fixed' && computedStyle.display !== 'none') {
+      // @ts-ignore
       target.style.display = 'none'
     }
   }
