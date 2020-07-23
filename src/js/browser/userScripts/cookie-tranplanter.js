@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         cookie-transplanter
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.11
 // @require      https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js
 // @description  try to take over the world!
 // @author       You
