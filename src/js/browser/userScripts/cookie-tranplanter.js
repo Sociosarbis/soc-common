@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         cookie-transplanter
 // @namespace    http://tampermonkey.net/
-// @version      0.11
+// @version      0.1
 // @require      https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js
 // @description  try to take over the world!
 // @author       You
@@ -95,9 +95,9 @@
       el.removeEventListener('transitionend', newAfterStart)
       el.removeEventListener('transitionend', newAfterEnd)
       el.addEventListener('transitionend', state === 1 ? newAfterStart : newAfterEnd)
-      state === 1 ? onStart(el) : onEnd(el)
       // 需要放到下一帧再渲染，不然会没有过渡效果
       requestAnimationFrame(() => {
+        state === 1 ? onStart(el) : onEnd(el)
         Object.keys(endStyle).forEach((key) => {
           el.style.setProperty(key, endStyle[key])
         })
