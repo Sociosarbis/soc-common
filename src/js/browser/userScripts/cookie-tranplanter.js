@@ -256,7 +256,7 @@
               <label class="${ID}-label" for='${ID}-cookies'>cookies：</label>
               <textarea id='${ID}-cookies' class="w-full" v-model="form.cookies"></textarea>
             </div>
-            <div class="mt-20"><input id="${ID}-submit" type='submit' value='点击跳转' @click="jump" /></div>
+            <div class="mt-20"><input id="${ID}-submit" type='button' value='点击跳转' @click="jump" /></div>
           </form>
         <div class="mt-20"><button id="${ID}-clear" @click="clear">清空</button></div>
         <button class="float-left" :class="open ? 'mt-20' : ''" @click="handleToggle">{{ open ? '收起' : '展开' }}</button>
