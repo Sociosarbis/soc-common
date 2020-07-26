@@ -95,9 +95,9 @@
       el.removeEventListener('transitionend', newAfterStart)
       el.removeEventListener('transitionend', newAfterEnd)
       el.addEventListener('transitionend', state === 1 ? newAfterStart : newAfterEnd)
-      state === 1 ? onStart(el) : onEnd(el)
       // 需要放到下一帧再渲染，不然会没有过渡效果
       requestAnimationFrame(() => {
+        state === 1 ? onStart(el) : onEnd(el)
         Object.keys(endStyle).forEach((key) => {
           el.style.setProperty(key, endStyle[key])
         })
@@ -256,7 +256,7 @@
               <label class="${ID}-label" for='${ID}-cookies'>cookies：</label>
               <textarea id='${ID}-cookies' class="w-full" v-model="form.cookies"></textarea>
             </div>
-            <div class="mt-20"><input id="${ID}-submit" type='submit' value='点击跳转' @click="jump" /></div>
+            <div class="mt-20"><input id="${ID}-submit" type='button' value='点击跳转' @click="jump" /></div>
           </form>
         <div class="mt-20"><button id="${ID}-clear" @click="clear">清空</button></div>
         <button class="float-left" :class="open ? 'mt-20' : ''" @click="handleToggle">{{ open ? '收起' : '展开' }}</button>
