@@ -1,3 +1,5 @@
+import { identity } from '../const/common'
+
 function range(...args) {
   let step = 1
   let start = 0
@@ -90,4 +92,11 @@ class NaiveSet {
   }
 }
 
-export { NaiveSet }
+function toMap(arr, key, mapFunc = identity) {
+  return arr.reduce((acc, item) => {
+    acc[item[key]] = mapFunc(item)
+    return acc
+  }, {})
+}
+
+export { NaiveSet, flatArray, range, toMap }
