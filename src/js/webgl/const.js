@@ -32,5 +32,6 @@ export {
   UNSIGNED_SHORT,
   SHORT,
   INT,
-  FLOAT
+  FLOAT,
+  ARRAY_BUFFER
 }

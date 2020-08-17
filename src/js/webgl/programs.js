@@ -1,5 +1,5 @@
 import * as obj from '../obj/obj'
-import { COMPILE_STATUS, DEFAULT_ATTRIBUTE_SETTINGS, LINK_STATUS } from './const'
+import { ARRAY_BUFFER, COMPILE_STATUS, DEFAULT_ATTRIBUTE_SETTINGS, LINK_STATUS } from './const'
 import { getGLTypeForTypedArray } from './typedarrays'
 
 /**
@@ -61,4 +61,16 @@ function createBufferFromTypedArray(gl, typedArray, type, drawType) {
   gl.bindBuffer(type, buffer)
   gl.bufferData(type, typedArray, drawType)
   return buffer
+}
+
+function setFloatAttrib(gl, index, data) {
+  if (!data.buffer) {
+    gl.disableVertexAttribArray(index)
+    gl[`vertexAttrib${data.value.length}`](index, data.value)
+  } else {
+    gl.bindBuffer(ARRAY_BUFFER, data.buffer)
+    gl.enableVertexAttribArray(index)
+    /** 将当前与ARRAY_BUFFER绑定的buffer与着色器的顶点属性变量绑定，并定义buffer的数据布局 */
+    gl.vertexAttribPointer(index, data.numComponents, data.type, data.normalize, data.stride, data.offset)
+  }
 }
