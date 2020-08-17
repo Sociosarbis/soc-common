@@ -70,7 +70,7 @@ function setFloatAttrib(gl, index, data) {
   } else {
     gl.bindBuffer(ARRAY_BUFFER, data.buffer)
     gl.enableVertexAttribArray(index)
-    /** 将当前与ARRAY_BUFFER绑定的buffer与着色器的顶点属性变量绑定，并定义buffer的数据布局 */
+    /** 将当前与ARRAY_BUFFER绑定的buffer与着色器的顶点属性变量绑定，并定义读取buffer数据的方式 */
     gl.vertexAttribPointer(index, data.numComponents, data.type, data.normalize, data.stride, data.offset)
   }
 }
