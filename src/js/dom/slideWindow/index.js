@@ -1,4 +1,4 @@
-import { noop } from '../const/common'
+import { noop } from '../../const/common'
 
 class SlideItem {
   constructor(height) {
@@ -106,12 +106,12 @@ class SlideWindow {
 
     if (this.start !== start) {
       this.start = start
-      this.paddingTop = Math.max(paddingTop, 0)
+      this.paddingTop = Math.round(Math.max(paddingTop, 0))
     }
 
     if (this.end !== end) {
       this.end = end
-      this.paddingBottom = Math.max(paddingBottom, 0)
+      this.paddingBottom = Math.round(Math.max(paddingBottom, 0))
     }
   }
 

@@ -171,3 +171,7 @@ $prop-names: margin m, padding p;
   width: 1em;
   font-style: normal;
 }
+
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+}
