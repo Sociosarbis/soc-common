@@ -8,22 +8,18 @@ export default {
       type: String,
       default: 'window-item'
     },
+    modelList: Array,
     contentClass: {
       type: String
     },
     infinite: {
       type: Boolean,
       default: true
-    },
-    defaultItemSize: {
-      type: Number,
-      default: 508
     }
   },
   data() {
     return {
-      slideWindow: null,
-      modelList: []
+      slideWindow: null
     }
   },
   computed: {
@@ -47,7 +43,12 @@ export default {
   },
   watch: {
     windowList(val) {
-      this.$emit('window-change', val)
+      this.$emit(
+        'window-change',
+        val,
+        this.slideWindow && this.slideWindow.start,
+        this.slideWindow && this.slideWindow.end
+      )
     }
   },
   mounted() {
@@ -73,7 +74,6 @@ export default {
   },
   beforeDestroy() {
     if (this.infinite) {
-      this._cacheDOMList.length = 0
       this.DOMObserver.disconnect()
     }
   },
@@ -105,9 +105,9 @@ export default {
       this._cacheDOMList = this.$el.getElementsByClassName(this.itemClass)
       this.slideWindow.forward(_scrollTop)
     },
-    loadItems() {
+    loadItems(modelList) {
       if (!this.infinite) return
-      this.slideWindow.resizeItemsNum(this.modelList.length)
+      this.slideWindow.resizeItemsNum(modelList.length)
       this.forward(0)
     },
     onHideItem(item, index) {
@@ -120,9 +120,8 @@ export default {
     },
     reset(modelList) {
       if (!this.infinite) return
-      this.modelList = modelList
       this.createSlideWindow()
-      this.loadItems()
+      this.loadItems(modelList)
       this.$el.scrollTop = 0
     },
     createSlideWindow() {
