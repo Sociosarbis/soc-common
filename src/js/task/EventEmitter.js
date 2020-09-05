@@ -48,9 +48,9 @@ export default class EventEmitter {
     }
   }
 
-  emit(eventName, params) {
+  emit(eventName, ...params) {
     if (this._bus.has(eventName)) {
-      this._bus.get(eventName).forEach((handler) => handler(params))
+      this._bus.get(eventName).forEach((handler) => handler.apply(null, params))
     }
   }
 
