@@ -188,3 +188,13 @@ $prop-names: margin m, padding p;
 .smooth-scroll {
   -webkit-overflow-scrolling: touch;
 }
+
+
+.box {
+  &-border {
+    box-sizing: border-box;
+  }
+  &-content {
+    box-sizing: content-box;
+  }
+}
