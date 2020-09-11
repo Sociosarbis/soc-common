@@ -355,18 +355,18 @@ $colors: (
 @each $color_name, $color in $colors {
   @each $color_type, $color_value in $color {
     @if $color_type == "base" {
-      .#{$color_name} {
+      .bg-#{$color_name} {
         background-color: $color_value;
       }
-      .#{$color_name}-text {
+      .text-#{$color_name} {
         color: $color_value;
       }
     }
     @else if $color_name != "shades" {
-      .#{$color_name}.#{$color_type} {
+      .bg-#{$color_name}_#{$color_type} {
         background-color: $color_value;
       }
-      .#{$color_name}-text.text-#{$color_type} {
+      .text-#{$color_name}_#{$color_type} {
         color: $color_value;
       }
     }
@@ -375,10 +375,10 @@ $colors: (
 
 // Shade classes
 @each $color, $color_value in $shades {
-  .#{$color} {
+  .bg-#{$color} {
     background-color: $color_value;
   }
-  .#{$color}-text {
+  .text-#{$color} {
     color: $color_value;
   }
 }
