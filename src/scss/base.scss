@@ -91,7 +91,9 @@ $overflow-value: auto, visible, hidden;
 // Flex Direction
 $direction-list: row, column;
 @each $val in $direction-list {
-  flex-direction: $val;
+  .flex-#{$val} {
+    flex-direction: $val;
+  }
 }
 
 // Align Items
