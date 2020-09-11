@@ -37,7 +37,7 @@ $display-list: hidden, block, inline-block, inline, flex, inline-flex;
     line-height: 1;
   }
   &-tight {
-    line-height: 1.5;
+    line-height: 1.25;
   }
   &-snug {
     line-height: 1.375;
@@ -67,7 +67,7 @@ $cursor-list: auto, pointer;
 }
 
 // Whitespace
-$whitespace-list: normal, no-wrap, pre, pre-line, pre-wrap;
+$whitespace-list: normal, nowrap, pre, pre-line, pre-wrap;
 @each $val in $whitespace-list {
   .whitespace-#{$val} {
     white-space: $val;
@@ -189,4 +189,14 @@ $prop-names: margin m, padding p;
 
 .smooth-scroll {
   -webkit-overflow-scrolling: touch;
+}
+
+
+.box {
+  &-border {
+    box-sizing: border-box;
+  }
+  &-content {
+    box-sizing: content-box;
+  }
 }
