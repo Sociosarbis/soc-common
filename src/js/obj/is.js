@@ -10,6 +10,10 @@ function isArrayLike(list) {
   return 'length' in list
 }
 
+function isPlainObject(obj) {
+  return !isUndef(obj) && obj.constructor === Object || isUndef(obj.constructor)
+}
+
 /**
  * 暂时只处理常见类型
  */
@@ -20,4 +24,4 @@ function isEmptyOrInvalid(obj) {
   )
 }
 
-export { isUndef, isFunc, isArrayLike, isEmptyOrInvalid }
+export { isUndef, isFunc, isArrayLike, isEmptyOrInvalid, isPlainObject }
