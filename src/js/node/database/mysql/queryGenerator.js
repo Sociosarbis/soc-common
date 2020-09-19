@@ -8,6 +8,7 @@ const escape = function (str) {
   if (isUndef(str)) {
     str = 'NULL'
   }
+  if (str instanceof SQLMethod) return str.toSQLFrag()
   return `'${str}'`
 }
 
@@ -26,6 +27,7 @@ class Fn extends SQLMethod {
   * @param {any[]} args
   */
   constructor(fn, args) {
+    super()
     this.fn = fn
     this.args = args
   }
@@ -35,11 +37,27 @@ class Fn extends SQLMethod {
   }
 }
 
+class Literal extends SQLMethod {
+  /**
+   *
+   * @param {string} val
+   */
+  constructor(val) {
+    super()
+    this.val = val
+  }
+
+  toSQLFrag() {
+    return this.val
+  }
+}
+
 class Col extends SQLMethod {
   /**
    * @param {string} col
   */
   constructor(col) {
+    super()
     this.col = col
   }
 
