@@ -7,7 +7,7 @@ function map(obj, mapFunc = identity) {
 
 /** @param {(acc: any, item: any, key: string ) => any} reduceFunc */
 function reduce(obj, reduceFunc = identity, initialVal = null) {
-  return Object.keys(obj).reduce((acc, key) => reduceFunc(acc, obj[key], key), initialVal)
+  return Object.keys(obj).reduce((acc, key, i) => reduceFunc(acc, obj[key], key), initialVal)
 }
 
 export { map, reduce }
