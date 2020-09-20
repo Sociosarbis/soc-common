@@ -21,6 +21,14 @@ function quoteIdentifier(identifier) {
 }
 
 /**
+ *
+ * @param {string} expr
+ */
+function wrapParenthesis(expr) {
+  return `(${expr})`
+}
+
+/**
  * @param {any[]} binds
  */
 function bindParamCreator(binds) {
@@ -119,7 +127,10 @@ export default {
     const binds = []
     const bindParam = bindParamCreator(binds)
     const context = {
-      bindParam
+      bindParam,
+      where: {
+        upperOp: OperatorMap.and
+      }
     }
 
     let values = obj.map(valueHash, (value, key) => [key, value])
@@ -202,11 +213,17 @@ export default {
     const connection = key === OperatorMap.not ? OperatorMap.and : key
     const outerOp = key === OperatorMap.not ? OperatorMap.not : ''
     if (Array.isArray(value)) {
-      return `${outerOp} (${value
+      const newContext = Object.assign({}, context)
+      newContext.where = Object.assign({}, newContext.where, { upperOp: connection })
+      const expr = value
         .map((item) => {
           return this.whereClauseItems(item, context)
         })
-        .join(connection)})`
+        .join(connection)
+      if (connection !== context.where.upperOp)
+        return [outerOp, outerOp || connection !== context.where.upperOp ? wrapParenthesis(expr) : expr]
+          .filter(Boolean)
+          .join(' ')
     }
   },
   addPrefixPath(prefix, key) {
