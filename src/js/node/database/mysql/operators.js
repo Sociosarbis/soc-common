@@ -38,6 +38,13 @@ const OperatorMap = {
   placeholder: '$$PLACEHOLDER$$'
 }
 
-export {
-  OperatorMap
+const GROUP_OPERATORS = [OperatorMap.or, OperatorMap.and, OperatorMap.not]
+/**
+ *
+ * @param {string} str
+ */
+function isGroupOperator(str) {
+  return GROUP_OPERATORS.indexOf(str) !== -1
 }
+
+export { OperatorMap, isGroupOperator }
