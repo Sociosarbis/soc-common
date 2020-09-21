@@ -91,6 +91,26 @@ class Col extends SQLMethod {
 export default {
   /**
    * @param {string} table
+   * @param {*} options
+   */
+  selectQuery(tableName, options) {
+    const attributes = {
+      main: options.attributes && options.attributes.slice()
+    }
+
+    const mainTable = {
+      name: tableName,
+      quotedName: ''
+    }
+
+    mainTable.quotedName = quoteIdentifier(mainTable.name)
+
+    attributes.main = attributes.map((attr) => quoteIdentifier(attr))
+
+    return `SELECT ${attributes.main(', ')} FROM ${mainTable.quotedName};`
+  },
+  /**
+   * @param {string} table
    * @param {Record<string, number|string>} valueHash
    * @param {object} options
    * @param {boolean} options.omitNull
