@@ -94,8 +94,10 @@ export default {
    * @param {*} options
    */
   selectQuery(tableName, options) {
+    const binds = []
+    const bindParam = bindParamCreator(binds)
     const attributes = {
-      main: options.attributes && options.attributes.slice()
+      main: (options.attributes && options.attributes.slice()) || ['*']
     }
 
     const mainTable = {
@@ -107,7 +109,17 @@ export default {
 
     attributes.main = attributes.map((attr) => quoteIdentifier(attr))
 
-    return `SELECT ${attributes.main(', ')} FROM ${mainTable.quotedName};`
+    const context = {
+      bindParam,
+      prefix: tableName,
+      where: {
+        upperOp: OperatorMap.and
+      }
+    }
+
+    const whereClause = options.where ? this.whereClause(options, context) : ''
+
+    return `SELECT ${attributes.main(', ')} FROM ${mainTable.quotedName} ${whereClause};`
   },
   /**
    * @param {string} table
