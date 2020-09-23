@@ -9,6 +9,24 @@ const escape = function (str) {
     str = 'NULL'
   }
   if (str instanceof SQLMethod) return str.toSQLFrag()
+  str = str.replace(/[\0\n\r\b\t\\'"\x1a]/g, (s) => {
+    switch (s) {
+      case '\0':
+        return '\\0'
+      case '\n':
+        return '\\n'
+      case '\r':
+        return '\\r'
+      case '\b':
+        return '\\b'
+      case '\t':
+        return '\\t'
+      case '\x1a':
+        return '\\Z'
+      default:
+        return `\\${s}`
+    }
+  })
   return `'${str}'`
 }
 
@@ -107,7 +125,7 @@ export default {
 
     mainTable.quotedName = quoteIdentifier(mainTable.name)
 
-    attributes.main = attributes.map((attr) => quoteIdentifier(attr))
+    attributes.main = this.formatSelectAttributes(attributes.main)
 
     const context = {
       bindParam,
@@ -120,6 +138,16 @@ export default {
     const whereClause = options.where ? this.whereClause(options, context) : ''
 
     return `SELECT ${attributes.main(', ')} FROM ${mainTable.quotedName} ${whereClause};`
+  },
+  formatSelectAttributes(attributes) {
+    return (
+      attributes &&
+      attributes.map((/** @type {string| [attr: string, alias: string] } */ attr) => {
+        if (Array.isArray(attr)) {
+          return [!/[()]/.test(attr[0]) ? quoteIdentifier(attr[0]) : attr[0], quoteIdentifier(attr[1])].join(' AS ')
+        } else quoteIdentifier(attr)
+      })
+    )
   },
   /**
    * @param {string} table
