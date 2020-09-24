@@ -38,6 +38,27 @@ function quoteIdentifier(identifier) {
   return `${TICK_CHAR}${identifier.replace(new RegExp(TICK_CHAR, 'g'), '')}${TICK_CHAR}`
 }
 
+const validOrderOptions = [
+  'ASC',
+  'DESC',
+  'ASC NULLS LAST',
+  'DESC NULLS LAST',
+  'ASC NULLS FIRST',
+  'DESC NULLS FIRST',
+  'NULLS FIRST',
+  'NULLS LAST'
+]
+
+function qoute(collection) {
+  if (typeof collection === 'string') return quoteIdentifier(collection)
+  if (Array.isArray(collection)) {
+    return collection.map((item) => {
+      if (validOrderOptions.indexOf(item) !== -1) return ` ${item}`
+      return item.split('.').map(quoteIdentifier).join('')
+    })
+  }
+}
+
 /**
  *
  * @param {string} expr
@@ -137,7 +158,11 @@ export default {
 
     const whereClause = options.where ? this.whereClause(options, context) : ''
 
-    return `SELECT ${attributes.main(', ')} FROM ${mainTable.quotedName} ${whereClause};`
+    const orderByClause = options.order
+      ? `ORDER BY ${options.order.map((attr) => quoteIdentifier(attr)).join(', ')}`
+      : ''
+
+    return `SELECT ${attributes.main(', ')} FROM ${mainTable.quotedName} ${whereClause} ${orderByClause};`
   },
   formatSelectAttributes(attributes) {
     return (
@@ -285,6 +310,16 @@ export default {
           .filter(Boolean)
           .join(' ')
     }
+  },
+  orderByClause(options) {
+    return options.order
+      .map((attr) => {
+        if (Array.isArray(attr)) {
+          return this.quote(attr)
+        }
+        return attr.split('.').map(quoteIdentifier).join('.')
+      })
+      .join(', ')
   },
   addPrefixPath(prefix, key) {
     if (prefix) return `${quoteIdentifier(prefix)}.${key}`
