@@ -49,7 +49,7 @@ const validOrderOptions = [
   'NULLS LAST'
 ]
 
-function qoute(collection) {
+function quote(collection) {
   if (typeof collection === 'string') return quoteIdentifier(collection)
   if (Array.isArray(collection)) {
     return collection.map((item) => {
@@ -173,8 +173,10 @@ export default {
       attributes &&
       attributes.map((/** @type {string| [attr: string, alias: string] } */ attr) => {
         if (Array.isArray(attr)) {
-          return [!/[()]/.test(attr[0]) ? quoteIdentifier(attr[0]) : attr[0], quoteIdentifier(attr[1])].join(' AS ')
-        } else quoteIdentifier(attr)
+          return [!/[()]/.test(attr[0]) ? quoteIdentifier(escape(attr[0])) : attr[0], quoteIdentifier(attr[1])].join(
+            ' AS '
+          )
+        } else quoteIdentifier(escape(attr))
       })
     )
   },
@@ -320,7 +322,7 @@ export default {
     return options.order
       .map((attr) => {
         if (Array.isArray(attr)) {
-          return this.quote(attr)
+          return quote(attr)
         }
         return attr.split('.').map(quoteIdentifier).join('.')
       })
