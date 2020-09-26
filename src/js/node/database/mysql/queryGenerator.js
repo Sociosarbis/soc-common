@@ -158,11 +158,15 @@ export default {
 
     const whereClause = options.where ? this.whereClause(options, context) : ''
 
+    const havingClause = options.where ? this.whereClause(options, Object.assign({}, context, { isHaving: true })) : ''
+
     const orderByClause = options.order
       ? `ORDER BY ${options.order.map((attr) => quoteIdentifier(attr)).join(', ')}`
       : ''
 
-    return `SELECT ${attributes.main(', ')} FROM ${mainTable.quotedName} ${whereClause} ${orderByClause};`
+    return `SELECT ${attributes.main(', ')} FROM ${
+      mainTable.quotedName
+    } ${whereClause} ${havingClause} ${orderByClause};`
   },
   formatSelectAttributes(attributes) {
     return (
@@ -243,9 +247,10 @@ export default {
    * @param {Record<string, any>} whereHash
    * @param {object} context
    * @param {(value: any) => string} context.bindParam
+   * @param {boolean} [context.isHaving]
    */
   whereClause(whereHash, context) {
-    return `WHERE ${this.whereClauseItems(whereHash, context)}`
+    return `${context.isHaving ? 'HAVING' : 'WHERE'} ${this.whereClauseItems(whereHash, context)}`
   },
   whereClauseItems(whereHash, context) {
     const wheres = obj.map(whereHash, (value, key) => [key, value])
