@@ -94,7 +94,7 @@ class Fn extends SQLMethod {
   }
 
   toSQLFrag() {
-    return `${this.fn}(${this.args.join(', ')})`
+    return `${this.fn}(${this.args.map(escape).join(', ')})`
   }
 }
 
@@ -123,7 +123,7 @@ class Col extends SQLMethod {
   }
 
   toSQLFrag() {
-    return quoteIdentifier(this.col)
+    return this.col.split('.').map(quoteIdentifier).join('.')
   }
 }
 
@@ -164,9 +164,11 @@ export default {
       ? `ORDER BY ${options.order.map((attr) => quoteIdentifier(attr)).join(', ')}`
       : ''
 
+    const groupByClause = options.group ? `GROUP BY ${quoteIdentifier(options.group)}` : ''
+
     return `SELECT ${attributes.main(', ')} FROM ${
       mainTable.quotedName
-    } ${whereClause} ${havingClause} ${orderByClause};`
+    } ${whereClause} ${havingClause} ${groupByClause} ${orderByClause};`
   },
   formatSelectAttributes(attributes) {
     return (
