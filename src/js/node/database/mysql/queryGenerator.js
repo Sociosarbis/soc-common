@@ -32,9 +32,10 @@ const escape = function (str) {
 
 /**
  *
- * @param {string} identifier
+ * @param {any} identifier
  */
 function quoteIdentifier(identifier) {
+  if (identifier instanceof SQLMethod) return identifier.toSQLFrag()
   return `${TICK_CHAR}${identifier.replace(new RegExp(TICK_CHAR, 'g'), '')}${TICK_CHAR}`
 }
 
@@ -160,15 +161,15 @@ export default {
 
     const havingClause = options.where ? this.whereClause(options, Object.assign({}, context, { isHaving: true })) : ''
 
-    const orderByClause = options.order
-      ? `ORDER BY ${options.order.map((attr) => quoteIdentifier(attr)).join(', ')}`
-      : ''
+    const orderByClause = options.order ? `ORDER BY ${this.orderByClause(options.order)}` : ''
 
-    const groupByClause = options.group ? `GROUP BY ${quoteIdentifier(options.group)}` : ''
+    const groupByClause = this.groupByClause(options.group)
+
+    const limitClause = options.limit ? `LIMIT ${[options.offset, options.limit].filter(Boolean).join(', ')}` : ''
 
     return `SELECT ${attributes.main(', ')} FROM ${
       mainTable.quotedName
-    } ${whereClause} ${havingClause} ${groupByClause} ${orderByClause};`
+    } ${whereClause} ${havingClause} ${groupByClause} ${orderByClause} ${limitClause};`
   },
   formatSelectAttributes(attributes) {
     return (
@@ -257,7 +258,7 @@ export default {
     return `${context.isHaving ? 'HAVING' : 'WHERE'} ${this.whereClauseItems(whereHash, context)}`
   },
   whereClauseItems(whereHash, context) {
-    const wheres = obj.map(whereHash, (value, key) => [key, value])
+    const wheres = Array.isArray(whereHash) ? whereHash : obj.map(whereHash, (value, key) => [key, value])
     return wheres.map((pair) => this.whereClauseItem(pair[0], pair[1], context)).join(' AND ')
   },
   /**
@@ -329,6 +330,14 @@ export default {
         return attr.split('.').map(quoteIdentifier).join('.')
       })
       .join(', ')
+  },
+  groupByClause(options) {
+    if (options.group) {
+      return `GROUP BY ${
+        Array.isArray(options.group) ? options.group.map(quoteIdentifier) : quoteIdentifier(options.group)
+      }`
+    }
+    return ''
   },
   addPrefixPath(prefix, key) {
     if (prefix) return `${quoteIdentifier(prefix)}.${key}`
