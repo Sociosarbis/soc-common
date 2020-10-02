@@ -149,6 +149,15 @@ export default {
 
     attributes.main = this.formatSelectAttributes(attributes.main)
 
+    if (options.tableAs) {
+      mainTable.as = quoteIdentifier(options.tableAs)
+    }
+
+    if (options.subQuery) {
+      attributes.subQuery = attributes.main
+      attributes.main = [`${mainTable.as || mainTable.quotedName}.*`]
+    }
+
     const context = {
       bindParam,
       prefix: tableName,
@@ -157,19 +166,55 @@ export default {
       }
     }
 
-    const whereClause = options.where ? this.whereClause(options, context) : ''
+    const mainQueryItems = []
+    const subQueryItems = []
 
-    const havingClause = options.where ? this.whereClause(options, Object.assign({}, context, { isHaving: true })) : ''
+    if (options.where) {
+      ;(options.subQuery ? subQueryItems : mainQueryItems).push(this.whereClause(options, context))
+    }
 
-    const orderByClause = options.order ? `ORDER BY ${this.orderByClause(options.order)}` : ''
+    if (options.having) {
+      ;(options.subQuery ? subQueryItems : mainQueryItems).push(
+        this.whereClause(options, Object.assign({}, context, { isHaving: true }))
+      )
+    }
 
-    const groupByClause = this.groupByClause(options.group)
+    if (options.order) {
+      const orderClause = `ORDER BY ${this.orderByClause(options.order)}`
+      subQueryItems.push(orderClause)
+      mainQueryItems.push(orderClause)
+    }
 
-    const limitClause = options.limit ? `LIMIT ${[options.offset, options.limit].filter(Boolean).join(', ')}` : ''
+    if (options.group) {
+      ;(options.subQuery ? subQueryItems : mainQueryItems).push(this.groupByClause(options.group))
+    }
 
-    return `SELECT ${attributes.main(', ')} FROM ${
-      mainTable.quotedName
-    } ${whereClause} ${havingClause} ${groupByClause} ${orderByClause} ${limitClause};`
+    if (options.limit) {
+      ;(options.subQuery ? subQueryItems : mainQueryItems).push(
+        `LIMIT ${[options.offset, options.limit].filter(Boolean).join(', ')}`
+      )
+    }
+
+    if (options.subQuery) {
+      const mainQuery = `SELECT ${attributes.main.join(', ')} FROM`
+      const subQuery = `${this.selectClauseMain(mainTable.quotedName, attributes.subQuery, {
+        as: mainTable.as
+      })} ${subQueryItems.join('')}`
+      const asClause = mainTable.as ? `AS ${mainTable.as}` : ''
+      return `${mainQuery} (${subQuery}) ${asClause} ${mainQueryItems.join('')};`
+    } else {
+      return `${this.selectClauseMain(mainTable.quotedName, attributes.main, {
+        as: mainTable.as
+      })} ${mainQueryItems.join('')}`
+    }
+  },
+  selectClauseMain(tableName, attributes, options) {
+    let ret = `SELECT ${attributes.join(', ')} FROM ${tableName}`
+
+    if (options.as) {
+      ret += `AS ${options.as}`
+    }
+    return ret
   },
   formatSelectAttributes(attributes) {
     return (
