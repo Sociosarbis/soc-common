@@ -16,12 +16,9 @@ class Entity {
   static serialize(item) {
     return item instanceof Entity ? item.toString() : Entity.escape(item)
   }
-  /**
-   *
-   * @param {string} str
-   */
   static escape(str) {
     if (str === '*') return str
+    if (typeof str === 'number') return str
     if (isUndef(str)) {
       str = 'NULL'
     } else {

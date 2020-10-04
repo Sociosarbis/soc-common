@@ -162,13 +162,16 @@ class WhereItem extends Binary {
       case OperatorMap.substring:
         switch (this.op) {
           case OperatorMap.startsWith:
-            right = `${this.right}%`
+            // @ts-ignore
+            right = `${this.right.value}%`
             break
           case OperatorMap.endsWith:
-            right = `%${this.right}`
+            // @ts-ignore
+            right = `%${this.right.value}`
             break
           default:
-            right = `%${this.right}%`
+            // @ts-ignore
+            right = `%${this.right.value}%`
         }
         op = OperatorMap.like
         break
