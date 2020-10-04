@@ -99,4 +99,13 @@ function toMap(arr, key, mapFunc = identity) {
   }, {})
 }
 
-export { NaiveSet, flatArray, range, toMap }
+/**
+ *
+ * @param {{ toString: () => string}[]} arr
+ * @param {string} sep
+ */
+function joinWithTruthy(arr, sep) {
+  return arr.filter(Boolean).join(sep)
+}
+
+export { NaiveSet, flatArray, range, toMap, joinWithTruthy }
