@@ -1,12 +1,22 @@
-import { Node, Root, Rule } from 'postcss'
+import { Declaration, Node, Root, Rule } from 'postcss'
 import { promisify } from 'util'
 import scss from 'postcss-scss'
 import fs from 'fs'
 import path from 'path'
 import { Readable } from 'stream'
 
+declare module 'postcss' {
+  export interface Declaration {
+    variable: boolean
+  }
+}
+
 const statAsync = promisify(fs.stat)
 const mkdirAsync = promisify(fs.mkdir)
+
+function normalizeKey(key: string) {
+  return key.replace(/\s\r\n/g, '')
+}
 
 function overwrite(store: Record<string, Node>, key: string, value: Node) {
   if (store[key]) store[key].remove()
@@ -43,18 +53,19 @@ function collect(root: Rule | Root) {
   }
   root.each(node => {
     if (node.type === 'decl') {
-      if (node.variable) {
-        overwrite(store.var, node.prop, node)
-      } else overwrite(store.prop, node.prop, node)
+      if ((node as Declaration).variable) {
+        overwrite(store.var, normalizeKey(node.prop), node)
+      } else overwrite(store.prop, normalizeKey(node.prop), node)
     } else if (node.type === 'atrule') {
       if (store[node.name]) {
-        overwrite(store[node.name], node.params, node)
+        overwrite(store[node.name], normalizeKey(node.params), node)
       } else console.log(node.name)
     } else if (node.type === 'rule') {
-      if (store.rule[node.selector]) {
-        mergeRules(store.rule[node.selector], node)
+      const key = normalizeKey(node.selector)
+      if (store.rule[key]) {
+        mergeRules(store.rule[key], node)
       } else {
-        store.rule[node.selector] = node
+        store.rule[key] = node
       }
     }
   })
