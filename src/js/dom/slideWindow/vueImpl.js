@@ -15,6 +15,9 @@ export default {
     infinite: {
       type: Boolean,
       default: true
+    },
+    defaultItemSize: {
+      type: Number
     }
   },
   data() {
@@ -23,13 +26,21 @@ export default {
     }
   },
   computed: {
+    start() {
+      return this.slideWindow ? this.slideWindow.start : 0
+    },
+    end() {
+      return this.slideWindow ? this.slideWindow.end : 0
+    },
     windowList() {
-      return this.slideWindow && this.modelList.slice(this.slideWindow.start, this.slideWindow.end + 1)
+      // @ts-ignore
+      return this.slideWindow && this.modelList.slice(this.start, this.end + 1)
     },
     layout() {
       if (this.slideWindow) {
         let minHeight = this.slideWindow.paddingTop + this.slideWindow.paddingBottom
-        for (let i = this.slideWindow.start; i < this.slideWindow.end + 1; i++) {
+        // @ts-ignore
+        for (let i = this.start; i < this.end + 1; i++) {
           minHeight += this.slideWindow.getItemOrDefault(i).height
         }
         return {
@@ -43,26 +54,37 @@ export default {
   },
   watch: {
     windowList(val) {
-      this.$emit(
-        'window-change',
-        val,
-        this.slideWindow && this.slideWindow.start,
-        this.slideWindow && this.slideWindow.end
-      )
+      this.$emit('window-change', val, this.start, this.end)
+    },
+    modelList() {
+      if (this.slideWindow) {
+        this.slideWindow.resizeItemsNum(this.modelList.length)
+        this.forward(this.$el.scrollTop)
+      }
     }
   },
   mounted() {
     if (this.infinite) {
-      this.createSlideWindow()
-      this.DOMObserver = new MutationObserver(([record]) => {
-        let cur = record.target
-        while (cur && cur != this.$el) {
-          // @ts-ignore
-          if (cur.classList.contains(this.itemClass)) {
-            this.handleDOMChange()
-            break
+      this.reset(this.modelList)
+      this.DOMObserver = new MutationObserver((records) => {
+        for (let i = 0; i < records.length; i++) {
+          const record = records[i]
+          let cur = record.target
+          while (cur && cur != this.$el) {
+            // @ts-ignore
+            if (cur.classList.contains(this.itemClass)) {
+              return this.handleDOMChange()
+            }
+            cur = cur.parentNode
           }
-          cur = cur.parentNode
+          if (record.type === 'childList') {
+            const nodes = record.addedNodes
+            for (let i = 0; i < nodes.length; i++) {
+              // @ts-ignore
+              if (nodes[i].classList.contains(this.itemClass) || nodes[i].querySelector(`.${this.itemClass}`))
+                return this.handleDOMChange()
+            }
+          }
         }
       })
       this.DOMObserver.observe(this.$el, {
@@ -84,16 +106,27 @@ export default {
   methods: {
     handleScroll(e) {
       this.forward(e.target.scrollTop)
-      this.$emit('scroll', { y: e.target.scrollTop })
+      this.$emit(
+        'scroll',
+        this.infinite
+          ? {
+              y: e.target.scrollTop,
+              start: this.start,
+              end: this.end
+            }
+          : {
+              y: e.target.scrollTop
+            }
+      )
     },
     handleDOMChange() {
       if (this.infinite && this._cacheDOMList.length) {
         const newItems = []
         for (let i = 0; i < this._cacheDOMList.length; i++) {
-          const item = this.slideWindow.getItem(i + this.slideWindow.start)
+          const item = this.slideWindow.getItem(i + this.start)
           item.height = this.calcItemHeight(this._cacheDOMList[i])
         }
-        this.slideWindow.items.splice(this.slideWindow.start, newItems.length, ...newItems)
+        this.slideWindow.items.splice(this.start, newItems.length, ...newItems)
       }
     },
     calcItemHeight(el) {
@@ -112,7 +145,7 @@ export default {
     },
     onHideItem(item, index) {
       if (this._cacheDOMList.length) {
-        const el = this._cacheDOMList[index - this.slideWindow.start]
+        const el = this._cacheDOMList[index - this.start]
         if (el) {
           item.height = this.calcItemHeight(el)
         }
@@ -149,6 +182,9 @@ export default {
         },
         false
       )
+    },
+    getScrollTop() {
+      return this.$el.scrollTop
     }
   },
   render(h) {
