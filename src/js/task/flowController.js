@@ -57,7 +57,9 @@ class TaskSet extends NaiveSet {
    * @param {any[]} args 创建任务用到的参数
    */
   createTask(creator, ...args) {
+    // @ts-ignore
     if (isFunc(creator.then)) return [creator, args]
+    // @ts-ignore
     return [creator(...args), []]
   }
 
@@ -189,11 +191,12 @@ class BatchTaskSet extends TaskSet {
     this._batchSize = batchSize
     this._waitingTasks = []
     this._shipping = false
+    this.on('size-change', this.handleSizeChange.bind(this))
   }
 
   /**
    *
-   * @param {function|Promise} creator 创建任务的函数或已创建的任务
+   * @param {function} creator 创建任务的函数或已创建的任务
    */
   add(creator, ...args) {
     if (this.size < this._batchSize) {
@@ -208,7 +211,7 @@ class BatchTaskSet extends TaskSet {
     if (this._shipping) return
     this._shipping = true
     while (newVal < this._batchSize && this._waitingTasks.length) {
-      const task = this._waitingTasks.pop()
+      const task = this._waitingTasks.shift()
       super.add(task[0](...task.slice(1)))
       newVal++
     }
@@ -278,6 +281,7 @@ function createManualPromise(promiseResolver = noop) {
   const p = new Promise(function (res) {
     resolve = res
   })
+  // @ts-ignore
   p.resolve = () => resolve(promiseResolver())
   return p
 }
@@ -297,7 +301,7 @@ function useTaskSets(arr = []) {
         })
         return task
       }
-      return Promise.reject(Promise.CancellationError())
+      return Promise.reject(new Promise.CancellationError())
     }
   }
 }
