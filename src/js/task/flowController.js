@@ -180,6 +180,42 @@ class RaceTaskSet extends ManualCancelTaskSet {
   }
 }
 
+class BatchTaskSet extends TaskSet {
+  /**
+   * @param {number} batchSize
+   */
+  constructor(batchSize = 5) {
+    super()
+    this._batchSize = batchSize
+    this._waitingTasks = []
+    this._shipping = false
+  }
+
+  /**
+   *
+   * @param {function|Promise} creator 创建任务的函数或已创建的任务
+   */
+  add(creator, ...args) {
+    if (this.size < this._batchSize) {
+      super.add(creator(...args))
+    } else {
+      this._waitingTasks.push([creator, ...args])
+    }
+    return this
+  }
+
+  handleSizeChange({ newVal }) {
+    if (this._shipping) return
+    this._shipping = true
+    while (newVal < this._batchSize && this._waitingTasks.length) {
+      const task = this._waitingTasks.pop()
+      super.add(task[0](...task.slice(1)))
+      newVal++
+    }
+    this._shipping = false
+  }
+}
+
 // 队列中的任务按顺序进行的TaskSet
 class SeriesTaskSet extends TaskSet {
   constructor() {
@@ -266,4 +302,4 @@ function useTaskSets(arr = []) {
   }
 }
 
-export { TakeLatestTaskSet, TakeLeadingTaskSet, RaceTaskSet, useTaskSets }
+export { TakeLatestTaskSet, TakeLeadingTaskSet, RaceTaskSet, BatchTaskSet, useTaskSets }
