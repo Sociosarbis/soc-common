@@ -5,7 +5,7 @@ module.exports = {
     node: true,
     jest: true
   },
-  extends: ['plugin:vue/essential', '@vue/prettier'],
+  extends: ['plugin:vue/essential', '@vue/prettier', '@vue/typescript'],
   plugins: ['simple-import-sort', 'import'],
   rules: {
     'no-console': 0,
@@ -42,8 +42,5 @@ module.exports = {
     'vue/component-name-in-template-casing': ['error', 'PascalCase', {
       ignores: []
     }]
-  },
-  parserOptions: {
-    parser: 'babel-eslint'
   }
 }
