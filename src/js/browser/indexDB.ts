@@ -1,3 +1,5 @@
+import * as versionHandlers from './versionHandlers';
+
 function promisifyTransaction<T>(req: IDBRequest): Promise<T> {
   return new Promise((res, rej) => {
     req.onsuccess = () => {
@@ -9,71 +11,42 @@ function promisifyTransaction<T>(req: IDBRequest): Promise<T> {
   });
 }
 
-type Index = {
-  keyPath: string[] | string;
-  name: string;
-  unique?: boolean;
-};
-
-export type Table = {
-  name: string;
-  indices?: Index[];
-};
-
-function isIndexHasChanged(index1: Index, index2: Index) {
-  if (index1.unique !== index2.unique) return true;
-  if (index1.keyPath === index2.keyPath) return false;
-  if (Array.isArray(index1.keyPath) && Array.isArray(index2.keyPath))
-    return (
-      index1.keyPath.findIndex((key, i) => index2.keyPath[i] !== key) !== -1
-    );
-  return true;
-}
-
-class SoDB<T> {
+class SoDB {
   private _db: IDBDatabase | null;
   private _dbName: string;
+  private _version?: number;
   private _resolveDbPromise: Promise<IDBDatabase>;
-  constructor(name: string, tables: (string | Table)[]) {
+  constructor(name: string, version?: number) {
     this._db = null;
     this._dbName = name;
-    this._resolveDbPromise = this.connect(undefined, (db) => {
-      tables.forEach((pTable) => {
-        const table = typeof pTable === 'string' ? { name: pTable } : pTable;
-        const t = !db.objectStoreNames.contains(table.name)
-          ? db.createObjectStore(table.name)
-          : db.transaction(table.name, 'readwrite').objectStore(table.name);
-        if ('indices' in table) {
-          table.indices?.forEach((i) => {
-            if (t.indexNames.contains(i.name)) {
-              const oldIndex = t.index(i.name);
-              if (isIndexHasChanged(i, oldIndex)) {
-                t.deleteIndex(oldIndex.name);
-              } else return;
-            }
-            t.createIndex(i.name, i.keyPath, {
-              unique: i.unique,
-              multiEntry: Array.isArray(i.keyPath),
-            });
-          });
-        }
-      });
+    this._version = version;
+    this._resolveDbPromise = this.connect(this._version, (db) => {
+      const name = `v${this._version}`;
+      if (name in versionHandlers) {
+        (versionHandlers as Record<string, (db: IDBDatabase) => void>)[name](
+          db,
+        );
+      }
     });
   }
 
   connect(
     version: number | undefined = undefined,
     handleUpgrade: (db: IDBDatabase) => any = () => {
-      /**/
+      //
     },
   ): Promise<IDBDatabase> {
-    if (this._db && (!version || (version && version === this._db.version)))
+    if (
+      this._db &&
+      (!this._version || (this._version && this._version === this._db.version))
+    )
       return this._resolveDbPromise;
     else {
       this._resolveDbPromise = new Promise((res, rej) => {
         const req = indexedDB.open(this._dbName, version);
         req.onsuccess = () => {
           this._db = req.result;
+          this._version = this._db.version;
           res(this._db);
         };
         req.onblocked = () => {
@@ -91,36 +64,21 @@ class SoDB<T> {
     }
   }
 
-  dropTable(storeName: string) {
+  set<T>(storeName: string, key: string, value: T): Promise<IDBValidKey> {
     return this.connect().then((db) => {
-      if (db.objectStoreNames.contains(storeName)) {
-        return this.connect(db.version + 1, (db) => {
-          db.deleteObjectStore(storeName);
-        });
-      }
-      return db;
+      const transaction = db.transaction(storeName, 'readwrite');
+      const store = transaction.objectStore(storeName);
+      return promisifyTransaction<IDBValidKey>(store.getKey(key)).then((ret) =>
+        promisifyTransaction(store[ret ? 'put' : 'add'](value, key)),
+      );
     });
   }
 
-  set(storeName: string, key: string, value: T): Promise<IDBValidKey> {
-    return this.connect().then((db) => {
-      if (db.objectStoreNames.contains(storeName)) {
-        const transaction = db.transaction(storeName, 'readwrite');
-        const store = transaction.objectStore(storeName);
-        return promisifyTransaction<IDBValidKey>(
-          store.getKey(key),
-        ).then((ret) =>
-          promisifyTransaction(store[ret ? 'put' : 'add'](value, key)),
-        );
-      } else {
-        return this.connect(db.version + 1, (db) => {
-          db.createObjectStore(storeName);
-        }).then(() => this.set(storeName, key, value));
-      }
-    });
-  }
-
-  get(storeName: string, key: string): Promise<T | void> {
+  /**
+   * @param {string} storeName
+   * @param {string} key
+   */
+  get<T>(storeName: string, key: string): Promise<T | void> {
     return this.connect().then<T | void>((db) => {
       if (db.objectStoreNames.contains(storeName)) {
         const transaction = db.transaction(storeName, 'readonly');
@@ -130,7 +88,7 @@ class SoDB<T> {
     });
   }
 
-  async getRange(
+  async getRange<T>(
     storeName: string,
     offset: number,
     size: number,
