@@ -38,7 +38,15 @@ class APlusPromise<T = any> implements Thenable {
   private _resolve = (val: T) => {
     if (this._isPending) {
       if (val as unknown === this) throw new TypeError('Chaining cycle detected for promise')
-      if (!(isPromise(val) || isThenable(val))) {
+      let thenHandler = null
+      if (isObj(val) || isFunc(val)) {
+        try {
+          thenHandler = (val as unknown as Thenable).then
+        } catch(e) {
+          return this._reject(e)
+        }
+      }
+      if (!isFunc(thenHandler)) {
         this._state = States.fulfilled
         this._val = val
         this._fulfilledCallbacks.forEach((cb) => {
@@ -65,7 +73,7 @@ class APlusPromise<T = any> implements Thenable {
             }
           }
           try {
-            promise.then(fulfilledCallback, rejectedCallback)
+            thenHandler.apply(promise, [fulfilledCallback, rejectedCallback])
           } catch (e) {
             rejectedCallback(e)
           }
@@ -91,7 +99,7 @@ class APlusPromise<T = any> implements Thenable {
   }
 
   private _nextTick(cb: () => any) {
-    window.setTimeout(cb, 0)
+    setTimeout(cb, 0)
   }
 
   private get _isPending() {
@@ -126,11 +134,13 @@ class APlusPromise<T = any> implements Thenable {
         }
       }
       if (!this._isPending) {
-        if (this._isFulFilled) {
-          fulfilledCallback(this._val as T)
-        } else {
-          rejectedCallback(this._val as T)
-        }
+        this._nextTick(() => {
+          if (this._isFulFilled) {
+            fulfilledCallback(this._val as T)
+          } else {
+            rejectedCallback(this._val as T)
+          }
+        })
       } else {
         this._fulfilledCallbacks.push(fulfilledCallback)
         this._rejectedCallbacks.push(rejectedCallback)
@@ -149,5 +159,27 @@ class APlusPromise<T = any> implements Thenable {
     return new APlusPromise((_, reject) => {
       reject(err)
     })
+  }
+}
+
+export const adapter = {
+  resolved<T>(value: T) {
+    return APlusPromise.resolve(value)
+  },
+  rejected<T>(reason:T) {
+    return APlusPromise.reject(reason)
+  },
+  deferred() {
+    let resolve
+    let reject
+    const promise = new APlusPromise((res, rej) => {
+      resolve = res
+      reject = rej
+    })
+    return {
+      promise,
+      resolve,
+      reject
+    }
   }
 }
