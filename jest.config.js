@@ -2,7 +2,7 @@ module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: 'src',
   testRegex: '.*\\.spec\\.[jt]s$',
-  transform: { '\\.js$': 'babel-jest' },
+  transform: { '\\.[tj]s$': 'babel-jest' },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1'
   },
