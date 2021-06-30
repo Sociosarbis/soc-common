@@ -1,7 +1,8 @@
-import { parse } from './parseGitConfig'
+import { parse, parseNew } from './parseGitConfig'
 
 test('parse correctly', () => {
-  const res = parse(`[core]
+
+  const content = `[core]
 	repositoryformatversion = 0
 	filemode = false
 	bare = false
@@ -42,7 +43,8 @@ test('parse correctly', () => {
 [submodule "src/shared"]
 	url = git@gitlab.ekwing.com:gz-server/moyi-shared.git
 	active = true
-`)
+`
+  const res = parse(content)
 
   expect(res).toEqual({
     core: {
