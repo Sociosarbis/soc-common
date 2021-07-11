@@ -5,7 +5,9 @@ enum CHAR {
   EQUAL = "=",
   BREAK_LINE = "\n",
   DOUBLE_QOUTE = '"',
-  BACK_SLASH = '\\'
+  BACK_SLASH = '\\',
+  NUMBER_SIGN = '#',
+  COLON = ';'
 }
 
 class RootProperty {
@@ -17,7 +19,7 @@ class RootProperty {
 
 class Property {
   name: string | StringLiteral
-  value: string | number | boolean | StringLiteral
+  value: string | StringLiteral
   start = 0
   end = 0
 }
@@ -29,8 +31,25 @@ class StringLiteral {
   end = 0
 }
 
+class Comment {
+  content = ''
+  start = 0
+  end = 0
+}
+
 type Entity = RootProperty | Property | StringLiteral
 
+
+const resolveStringValue = (str: string | StringLiteral) => {
+  return str instanceof StringLiteral ? str.value : str
+}
+
+const resolvePrimitive = (str: string) => {
+  if (str === 'true') return true
+  if (str === 'false') return false
+  if (!isNaN(parseFloat(str))) return parseFloat(str)
+  return str
+}
 
 export const parseNew = function (content: string) {
   let index = 0
@@ -38,6 +57,7 @@ export const parseNew = function (content: string) {
   content += "\n"
 
   const ctx: Entity[] = []
+  const comments: Comment[] = []
   const ast: RootProperty[] = []
   let isEscape = false
   const getCurrentEntity = () => ctx[ctx.length - 1]
@@ -77,6 +97,45 @@ export const parseNew = function (content: string) {
       nextTop.end = top.end
     }
   }
+
+  const parseComment = () => {
+    const comment = new Comment()
+    comment.start = index
+    while (index < content.length && content[index] !== CHAR.BREAK_LINE) {
+      index++
+    }
+    comment.content = content.substring(comment.start + 1, index)
+    comment.end = index + 1
+    comments.push(comment)
+  }
+
+  const handleCommentSymbol = () => {
+    if (!(context instanceof RootProperty)) {
+      let top = getCurrentEntity()
+      if (endProperty(top) !== top) {
+        top = getCurrentEntity()
+      }
+      parseComment()
+      top.end = index + 1
+    }
+    index++
+  }
+
+  const endProperty = (top: Entity) => {
+    if (top instanceof Property) {
+      if (!top.value) {
+        const value = content.substring(top.end, index).trim()
+        top.value = value
+        top.end = index + 1
+      }
+      ctx.pop()
+      const nextTop = getCurrentEntity()
+      nextTop.end = top.end
+      return nextTop
+    }
+    return top
+  }
+
   const CHAR_TO_HANDLER = {
     [CHAR.SQUARE_OPEN]: () => {
       let top = getCurrentEntity()
@@ -92,88 +151,63 @@ export const parseNew = function (content: string) {
     },
     [CHAR.SQUARE_CLOSE]: () => {
       let top = getCurrentEntity()
-      if (!(top instanceof StringLiteral)) {
-        if (top instanceof RootProperty) {
-          const trail = content.substring(top.end, index).trim()
-          if (trail) {
-            top.nameList.push(trail)
-          }
-          top.end = index + 1
-          context = top.properties
+      if (context instanceof RootProperty && context === top) {
+        const trail = content.substring(top.end, index).trim()
+        if (trail) {
+          top.nameList.push(trail)
         }
+        top.end = index + 1
+        context = top.properties
       }
       index += 1
     },
     [CHAR.BREAK_LINE]: () => {
       let top = getCurrentEntity()
-      if (!(top instanceof StringLiteral)) {
-        if (top instanceof Property) {
-          if (!top.value) {
-            const value = content.substring(top.end, index).trim()
-            top.value = value
-            top.end = index + 1
-          }
-          ctx.pop()
-          const nextTop = getCurrentEntity()
-          nextTop.end = top.end
-        }
-      }
+      endProperty(top)
       index += 1
     },
     [CHAR.EQUAL]: () => {
       let top = getCurrentEntity()
-      if (!(top instanceof StringLiteral)) {
-        if (top instanceof RootProperty) {
-          const value = content.substring(top.end, index).trim()
-          const property = new Property()
-          property.name = value
-          property.start = top.end
-          property.end = index + 1
-          if (!(context instanceof RootProperty)) {
-            (context as Property[]).push(property)
-          }
-          top.end = property.end
-          ctx.push(property)
+      if (top instanceof RootProperty) {
+        const value = content.substring(top.end, index).trim()
+        const property = new Property()
+        property.name = value
+        property.start = top.end
+        property.end = index + 1
+        if (!(context instanceof RootProperty)) {
+          (context as Property[]).push(property)
         }
+        top.end = property.end
+        ctx.push(property)
       }
       index += 1
     },
     [CHAR.DOUBLE_QOUTE]: () => {
-      let top = getCurrentEntity()
-      if (!(top instanceof StringLiteral)) {
-        const literal = new StringLiteral()
-        literal.start = index
-        literal.quote = CHAR.DOUBLE_QOUTE
-        literal.end = index + 1
-        ctx.push(literal)
-        index += 1
-        parseStringLiteral()
-      }
+      const literal = new StringLiteral()
+      literal.start = index
+      literal.quote = CHAR.DOUBLE_QOUTE
+      literal.end = index + 1
+      ctx.push(literal)
+      index += 1
+      parseStringLiteral()
       index += 1
     },
     [CHAR.SPACE]: () => {
       let top = getCurrentEntity()
-      if (!(top instanceof StringLiteral)) {
-        if (context instanceof RootProperty) {
-          const value = content.substring(top.end, index).trim()
-          if (value) {
-            (top as RootProperty).nameList.push(value)
-          }
-          top.end = index + 1
+      if (context instanceof RootProperty) {
+        const value = content.substring(top.end, index).trim()
+        if (value) {
+          (top as RootProperty).nameList.push(value)
         }
+        top.end = index + 1
       }
       index += 1
       while (index < content.length && content[index] === CHAR.SPACE) {
         index++
       }
     },
-    [CHAR.BACK_SLASH]: () => {
-      let top = getCurrentEntity()
-      if (top instanceof StringLiteral) {
-        isEscape = !isEscape
-      }
-      index += 1
-    }
+    [CHAR.NUMBER_SIGN]: handleCommentSymbol,
+    [CHAR.COLON]: handleCommentSymbol
   };
   const charHandler = () => {
     index += 1
@@ -189,5 +223,31 @@ export const parseNew = function (content: string) {
     }
   };
   step()
-  return ast
+  return {
+    ast,
+    comments
+  }
 };
+
+export const astToObj = function (ast: RootProperty[]) {
+  const root = {}
+  ast.forEach((p) => {
+    let cur = root
+    p.nameList.forEach(name => {
+      const value = resolveStringValue(name)
+        if (!cur[value]) {
+          cur[value] = {}
+        }
+        cur = cur[value]
+    })
+    p.properties.forEach((prop) => {
+      const key = resolveStringValue(prop.name)
+      if (prop.value instanceof StringLiteral) {
+        cur[key] = prop.value.value
+      } else {
+        cur[key] = resolvePrimitive(prop.value)
+      }
+    })
+  })
+  return root
+}

@@ -1,16 +1,16 @@
-import { parseNew } from './parseGitConfig'
+import { parseNew, astToObj } from "./parseGitConfig";
 
-test('parse correctly', () => {
-
+test("parse correctly", () => {
   const content = `[core]
-	repositoryformatversion = 0
+	repositoryformatversion = 0 # hello world
 	filemode = false
 	bare = false
 	logallrefupdates = true
 	symlinks = false
 	ignorecase = true
+#[this is a comment]
 [remote "origi\\"n"]
-	url = git@gitlab.ekwing.com:gz-server/teacher-app.git
+  url = git@gitlab.ekwing.com:gz-server/teacher-app.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 [branch "3.0@dev"]
 	remote = origin
@@ -43,7 +43,53 @@ test('parse correctly', () => {
 [submodule "src/shared"]
 	url = git@gitlab.ekwing.com:gz-server/moyi-shared.git
 	active = true
-`
-
-  console.log(JSON.stringify(parseNew(content)))
-})
+`;
+  const res = parseNew(content);
+  expect(res.comments.length).toBe(2);
+  expect(astToObj(res.ast)).toEqual({
+    core: {
+      repositoryformatversion: 0,
+      filemode: false,
+      bare: false,
+      logallrefupdates: true,
+      symlinks: false,
+      ignorecase: true,
+    },
+    remote: {
+      'origi"n': {
+        url: "git@gitlab.ekwing.com:gz-server/teacher-app.git",
+        fetch: "+refs/heads/*:refs/remotes/origin/*",
+      },
+    },
+    branch: {
+      "3.0@dev": { remote: "origin", merge: "refs/heads/3.0@dev" },
+      "3.0": { remote: "origin", merge: "refs/heads/3.0" },
+      "new-scroll": { remote: "origin", merge: "refs/heads/new-scroll" },
+      "holiday-report": {
+        remote: "origin",
+        merge: "refs/heads/holiday-report",
+      },
+    },
+    submodule: {
+      "src/components": {
+        active: true,
+        url: "git@gitlab.ekwing.com:sociosarbis/mobile-components.git",
+      },
+      "src/styles": {
+        active: true,
+        url: "git@gitlab.ekwing.com:gz-server/app-styles.git",
+      },
+      "src/utils": {
+        active: true,
+        url: "git@gitlab.ekwing.com:gz-server/app-utils.git",
+      },
+      "src/shared": {
+        url: "git@gitlab.ekwing.com:gz-server/moyi-shared.git",
+        active: true,
+      },
+    },
+    status: { submodulesummary: 1 },
+    diff: { submodule: "log" },
+    alias: { sdiff: "! git diff && git submodule foreach 'git diff'" },
+  });
+});
