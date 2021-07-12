@@ -61,6 +61,7 @@
   "dependencies": {
     "bluebird": "^3.7.2",
     "d3": "^6.2.0",
+    "execa": "^5.1.1",
     "mysql": "^2.18.1",
     "postcss": "^8.1.2",
     "postcss-scss": "^3.0.2",

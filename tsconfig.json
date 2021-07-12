@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "commonjs",
+    "baseUrl": ".",
     "moduleResolution": "node",
     "lib": ["es2017", "dom"],
     "allowJs": true,
@@ -11,6 +12,11 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "esModuleInterop": true,
+    "paths": {
+      "@/*": [
+        "src/js/*"
+      ]
+    }
   },
   "include": ["src"]
 }

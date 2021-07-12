@@ -230,7 +230,7 @@ export const parseNew = function (content: string) {
 };
 
 export const astToObj = function (ast: RootProperty[]) {
-  const root = {}
+  const root: Record<string, any> = {}
   ast.forEach((p) => {
     let cur = root
     p.nameList.forEach(name => {
