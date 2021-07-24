@@ -23,7 +23,7 @@ class SoDB {
   }
 
   connect(
-    handleUpgrade: (db: IDBDatabase) => any = () => {
+    handleUpgrade: (e: { db: IDBDatabase; transaction: IDBTransaction | null }) => any = () => {
       //
     },
     version?: number
@@ -73,6 +73,16 @@ class SoDB {
         const transaction = db.transaction(storeName, 'readonly')
         const store = transaction.objectStore(storeName)
         return promisifyTransaction<T>(store.get(key))
+      } else return Promise.resolve()
+    })
+  }
+
+  delete(storeName: string, key: string): Promise<void> {
+    return this.connect().then(db => {
+      if (db.objectStoreNames.contains(storeName)) {
+        const transaction = db.transaction(storeName, 'readwrite')
+        const store = transaction.objectStore(storeName)
+        return promisifyTransaction(store.delete(key))
       } else return Promise.resolve()
     })
   }
