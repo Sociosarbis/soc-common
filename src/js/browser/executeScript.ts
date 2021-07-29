@@ -104,7 +104,7 @@ function concatPath(base: string, path: string) {
 function Sandbox(global: any, extendContext: Record<string | number, any>) {
   const context: Record<string | number, any> = Object.assign({}, extendContext)
   return new Proxy(context, {
-    get(target, key: string | number) {
+    get(target, key) {
       const value = Reflect.get(key in context ? target : global, key)
       if (typeof value === 'function')
         return new Proxy(value, {
@@ -114,7 +114,7 @@ function Sandbox(global: any, extendContext: Record<string | number, any>) {
         })
       return value
     },
-    set(target, key: string | number, value: any) {
+    set(target, key, value: any) {
       return Reflect.set(target, key, value)
     }
   })
