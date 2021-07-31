@@ -1,9 +1,9 @@
 enum CHAR {
-  SQUARE_OPEN = "[",
-  SQUARE_CLOSE = "]",
-  SPACE = " ",
-  EQUAL = "=",
-  BREAK_LINE = "\n",
+  SQUARE_OPEN = '[',
+  SQUARE_CLOSE = ']',
+  SPACE = ' ',
+  EQUAL = '=',
+  BREAK_LINE = '\n',
   DOUBLE_QOUTE = '"',
   BACK_SLASH = '\\',
   NUMBER_SIGN = '#',
@@ -39,7 +39,6 @@ class Comment {
 
 type Entity = RootProperty | Property | StringLiteral
 
-
 const resolveStringValue = (str: string | StringLiteral) => {
   return str instanceof StringLiteral ? str.value : str
 }
@@ -54,7 +53,7 @@ const resolvePrimitive = (str: string) => {
 export const parseNew = function (content: string) {
   let index = 0
   let context: Entity | Entity[] | undefined
-  content += "\n"
+  content += '\n'
 
   const ctx: Entity[] = []
   const comments: Comment[] = []
@@ -63,7 +62,7 @@ export const parseNew = function (content: string) {
   const getCurrentEntity = () => ctx[ctx.length - 1]
 
   const parseStringLiteral = () => {
-    let top = getCurrentEntity() as StringLiteral
+    const top = getCurrentEntity() as StringLiteral
     while (index < content.length && !(!isEscape && content[index] === CHAR.DOUBLE_QOUTE)) {
       if (isEscape) {
         isEscape = false
@@ -120,7 +119,7 @@ export const parseNew = function (content: string) {
     }
     index++
   }
-
+  console.log(123)
   const endProperty = (top: Entity) => {
     if (top instanceof Property) {
       if (!top.value) {
@@ -138,7 +137,7 @@ export const parseNew = function (content: string) {
 
   const CHAR_TO_HANDLER = {
     [CHAR.SQUARE_OPEN]: () => {
-      let top = getCurrentEntity()
+      const top = getCurrentEntity()
       if (!(top instanceof StringLiteral)) {
         ctx.length = 0
         context = new RootProperty()
@@ -150,7 +149,7 @@ export const parseNew = function (content: string) {
       index += 1
     },
     [CHAR.SQUARE_CLOSE]: () => {
-      let top = getCurrentEntity()
+      const top = getCurrentEntity()
       if (context instanceof RootProperty && context === top) {
         const trail = content.substring(top.end, index).trim()
         if (trail) {
@@ -162,12 +161,12 @@ export const parseNew = function (content: string) {
       index += 1
     },
     [CHAR.BREAK_LINE]: () => {
-      let top = getCurrentEntity()
+      const top = getCurrentEntity()
       endProperty(top)
       index += 1
     },
     [CHAR.EQUAL]: () => {
-      let top = getCurrentEntity()
+      const top = getCurrentEntity()
       if (top instanceof RootProperty) {
         const value = content.substring(top.end, index).trim()
         const property = new Property()
@@ -175,7 +174,7 @@ export const parseNew = function (content: string) {
         property.start = top.end
         property.end = index + 1
         if (!(context instanceof RootProperty)) {
-          (context as Property[]).push(property)
+          ;(context as Property[]).push(property)
         }
         top.end = property.end
         ctx.push(property)
@@ -193,11 +192,11 @@ export const parseNew = function (content: string) {
       index += 1
     },
     [CHAR.SPACE]: () => {
-      let top = getCurrentEntity()
+      const top = getCurrentEntity()
       if (context instanceof RootProperty) {
         const value = content.substring(top.end, index).trim()
         if (value) {
-          (top as RootProperty).nameList.push(value)
+          ;(top as RootProperty).nameList.push(value)
         }
         top.end = index + 1
       }
@@ -208,37 +207,37 @@ export const parseNew = function (content: string) {
     },
     [CHAR.NUMBER_SIGN]: handleCommentSymbol,
     [CHAR.COLON]: handleCommentSymbol
-  };
+  }
   const charHandler = () => {
     index += 1
-  };
+  }
   const step = () => {
     while (index < content.length) {
-      var char = content[index]
+      const char = content[index]
       if (CHAR_TO_HANDLER[char]) {
         CHAR_TO_HANDLER[char]()
       } else {
         charHandler()
       }
     }
-  };
+  }
   step()
   return {
     ast,
     comments
   }
-};
+}
 
 export const astToObj = function (ast: RootProperty[]) {
   const root: Record<string, any> = {}
   ast.forEach((p) => {
     let cur = root
-    p.nameList.forEach(name => {
+    p.nameList.forEach((name) => {
       const value = resolveStringValue(name)
-        if (!cur[value]) {
-          cur[value] = {}
-        }
-        cur = cur[value]
+      if (!cur[value]) {
+        cur[value] = {}
+      }
+      cur = cur[value]
     })
     p.properties.forEach((prop) => {
       const key = resolveStringValue(prop.name)

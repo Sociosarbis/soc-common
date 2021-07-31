@@ -6,7 +6,12 @@ module.exports = {
     jest: true
   },
   extends: ['plugin:vue/essential', '@vue/prettier', '@vue/typescript'],
-  plugins: ['simple-import-sort', 'import'],
+  parserOptions: {
+    ecmaVersion: 2018,
+    sourceType: 'module',
+    parser: '@typescript-eslint/parser'
+  },
+  plugins: [],
   rules: {
     'no-console': 0,
     'no-useless-escape': 0,
@@ -23,13 +28,6 @@ module.exports = {
         requirePragma: false
       }
     ],
-    'import/no-useless-path-segments': 'error',
-    'import/no-mutable-exports': 'error',
-    'import/no-duplicates': 'error',
-    'import/newline-after-import': 'error',
-    'import/exports-last': 'error',
-    'import/group-exports': 'error',
-    'simple-import-sort/sort': 'error',
     'vue/v-on-style': 'error',
     'vue/v-bind-style': 'error',
     'vue/html-quotes': 'error',
