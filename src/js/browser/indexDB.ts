@@ -1,4 +1,4 @@
-import * as versionHandlers from './versionHandlers';
+import * as versionHandlers from './versionHandlers'
 
 function promisifyTransaction<T>(req: IDBRequest): Promise<T> {
   return new Promise((res, rej) => {
@@ -46,7 +46,10 @@ class SoDB {
           rej(req.error)
         }
         req.onupgradeneeded = () => {
-          handleUpgrade.call(this, req.result)
+          handleUpgrade.call(this, {
+            db: req.result,
+            transaction: req.transaction
+          })
         }
       })
       return this._resolveDbPromise
@@ -54,10 +57,10 @@ class SoDB {
   }
 
   set<T>(storeName: string, key: string, value: T): Promise<IDBValidKey> {
-    return this.connect().then(db => {
+    return this.connect().then((db) => {
       const transaction = db.transaction(storeName, 'readwrite')
       const store = transaction.objectStore(storeName)
-      return promisifyTransaction<IDBValidKey>(store.getKey(key)).then(ret => {
+      return promisifyTransaction<IDBValidKey>(store.getKey(key)).then((ret) => {
         return promisifyTransaction(store[ret ? 'put' : 'add'](value, key))
       })
     })
@@ -68,7 +71,7 @@ class SoDB {
    * @param {string} key
    */
   get<T>(storeName: string, key: string): Promise<T | void> {
-    return this.connect().then<T | void>(db => {
+    return this.connect().then<T | void>((db) => {
       if (db.objectStoreNames.contains(storeName)) {
         const transaction = db.transaction(storeName, 'readonly')
         const store = transaction.objectStore(storeName)
@@ -78,7 +81,7 @@ class SoDB {
   }
 
   delete(storeName: string, key: string): Promise<void> {
-    return this.connect().then(db => {
+    return this.connect().then((db) => {
       if (db.objectStoreNames.contains(storeName)) {
         const transaction = db.transaction(storeName, 'readwrite')
         const store = transaction.objectStore(storeName)
@@ -99,7 +102,7 @@ class SoDB {
     const ret: T[] = []
     let i = 0
     let hasAdvanced = offset ? false : true
-    await new Promise(res => {
+    await new Promise((res) => {
       cursorReq.onsuccess = () => {
         const cursor = cursorReq.result
         if (cursor && (size == -1 || i < size)) {
