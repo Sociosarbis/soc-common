@@ -3,22 +3,24 @@ import DB from './indexDB'
 type DBCacheItem = {
   key: string
   timestamp: number
-  blob: Blob
+  blob: PlainBlob
+}
+
+type PlainBlob = {
+  type: string
+  buffer: ArrayBuffer
 }
 
 export default class DBCache {
   private _db: DB
   storeName: string
-  scope = 'app-cache'
   version: number
+  scope = 'app-cache'
   maxEntries?: number
   constructor(storeName: string, version: number, options?: { scope: string; maxEntries?: number }) {
     this.storeName = storeName
     this.version = version
     this.maxEntries = options?.maxEntries
-    if (options?.scope) {
-      this.scope = options.scope
-    }
     this._db = new DB(storeName, version)
   }
 
@@ -36,7 +38,7 @@ export default class DBCache {
     return db
   }
 
-  async set(key: string, data: Blob) {
+  async set(key: string, data: PlainBlob) {
     const result = await this._db.get<DBCacheItem>(this.scope, key)
     if (!result && this.maxEntries) {
       const items = await this._db.getRange<DBCacheItem>(this.scope, this.maxEntries, -1, { index: 'timestamp' })

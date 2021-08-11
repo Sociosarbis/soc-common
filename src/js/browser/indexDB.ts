@@ -1,5 +1,3 @@
-import * as versionHandlers from './versionHandlers'
-
 function promisifyTransaction<T>(req: IDBRequest): Promise<T> {
   return new Promise((res, rej) => {
     req.onsuccess = () => {
@@ -60,7 +58,7 @@ class SoDB {
     return this.connect().then((db) => {
       const transaction = db.transaction(storeName, 'readwrite')
       const store = transaction.objectStore(storeName)
-      return promisifyTransaction<IDBValidKey>(store.getKey(key)).then((ret) => {
+      return promisifyTransaction<IDBValidKey>(store.get(key)).then((ret) => {
         return promisifyTransaction(store[ret ? 'put' : 'add'](value, key))
       })
     })
@@ -94,7 +92,7 @@ class SoDB {
     storeName: string,
     offset: number,
     size: number,
-    { index, order }: { index?: string; order?: 'next' | 'prev' } = {}
+    { index, order = 'next' }: { index?: string; order?: 'next' | 'prev' } = {}
   ): Promise<T[]> {
     const db = await this.connect()
     const store = db.transaction(storeName).objectStore(storeName)
