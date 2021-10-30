@@ -1,29 +1,20 @@
 enum NODE_TYPE {
   NULL,
-  NORMAL,
-  INTERIOR
+  INTERIOR,
+  NORMAL
 }
 
-class AHNode {
-  type: NODE_TYPE
-  value: string
-  weight: number
-  left?: AHNode
-  right?: AHNode
-  parent?: AHNode
-  constructor({ type, value, weight }: { type?: NODE_TYPE; value?: string; weight?: number } = {}) {
-    this.type = type ?? NODE_TYPE.NULL
-    this.value = value ?? ''
-    this.weight = weight ?? 0
+class AHTree {
+  emptyNode = new AHNode(this)
+  root: AHNode
+  charToNode = new Map<string, AHNode>()
+  constructor() {
+    this.root = this.emptyNode
   }
 
-  static getRoot() {
-    return root
-  }
-
-  static traverse(callback: (node: AHNode) => boolean) {
+  traverse(callback: (node: AHNode) => boolean) {
     let i = 0
-    const bfs = [root]
+    const bfs = [this.root]
     while (i != bfs.length) {
       const n = bfs.length
       for (; i < n; i++) {
@@ -43,49 +34,63 @@ class AHNode {
     return bfs
   }
 
-  static createOrIncrease(value: string) {
-    let node: AHNode = null
-    const list = AHNode.traverse((n) => {
-      if (n.value === value) {
-        node = n
-        return true
-      }
-    })
+  createOrIncrease(value: string) {
+    let node: AHNode = this.charToNode.get(value)
     if (!node) {
-      const newNode = new AHNode({
+      const newNode = new AHNode(this, {
         type: NODE_TYPE.NORMAL,
         weight: 1,
         value
       })
-      const parentNode = new AHNode({
+      const parentNode = new AHNode(this, {
         type: NODE_TYPE.INTERIOR,
-        weight: emptyNode.weight + newNode.weight
+        weight: this.emptyNode.weight + newNode.weight
       })
-      parentNode.left = emptyNode
+      parentNode.left = this.emptyNode
       parentNode.right = newNode
-      const oldParent = emptyNode.parent
-      emptyNode.parent = parentNode
+      const oldParent = this.emptyNode.parent
+      this.emptyNode.parent = parentNode
       newNode.parent = parentNode
       parentNode.parent = oldParent
-      if (root === emptyNode) {
-        root = parentNode
+      if (this.root === this.emptyNode) {
+        this.root = parentNode
       }
       if (oldParent) {
         oldParent.left = parentNode
         oldParent.updateWeight()
-        AHNode.ensureValid(oldParent)
       }
+      node = newNode
+      this.charToNode.set(value, node)
     } else {
       node.weight += 1
-      AHNode.ensureValid(node, list)
+      this.ensureValid(node)
+      node.parent?.updateWeight()
+    }
+    return node
+  }
+
+  encode(value: string) {
+    let node = this.charToNode.get(value)
+    let length = 0
+    let ret = 0
+    for (; node; length++, node = node.parent) {
+      if (!(node.isLeftChild() || !node.parent)) {
+        ret |= 1 << length
+      }
+    }
+    return [ret, length]
+  }
+
+  decode(node: AHNode, bit: number) {
+    if (node.type === NODE_TYPE.NORMAL) return node
+    if (bit & 1) {
+      return node.right
+    } else {
+      return node.left
     }
   }
 
-  isLeftChild() {
-    return this.parent && this.parent.left === this
-  }
-
-  static replaceNode(node1: AHNode, node2: AHNode) {
+  replaceNode(node1: AHNode, node2: AHNode) {
     const node1Parent = node1.parent
     const isLeftChild1 = node1.isLeftChild()
     const node2Parent = node2.parent
@@ -107,25 +112,20 @@ class AHNode {
     node1.parent = node2Parent
     node2.parent = node1Parent
     if (!node1.parent) {
-      root = node1
+      this.root = node1
     } else if (!node2.parent) {
-      root = node2
+      this.root = node2
     }
   }
 
-  updateWeight() {
-    this.weight = (this.left?.weight ?? 0) + (this.right?.weight ?? 0)
-    if (this.parent) this.parent.updateWeight()
-  }
-
-  static ensureValid(node: AHNode, list?: AHNode[]) {
-    list = list ?? AHNode.traverse((n) => n.value === node.value)
+  ensureValid(node: AHNode) {
+    const list = this.traverse((n) => n === node)
     let l = 0
     let r = list.length - 1
     while (l <= r) {
       const mid = (l + r) >> 1
-      if (list[mid].weight < node.weight) {
-        if (mid > 0 && list[mid - 1].weight < node.weight) {
+      if (node.isGreater(list[mid])) {
+        if (mid > 0 && node.isGreater(list[mid - 1])) {
           r = mid - 1
         } else {
           l = mid
@@ -136,18 +136,50 @@ class AHNode {
       }
     }
     if (l < list.length && node != list[l]) {
-      AHNode.replaceNode(node, list[l])
+      const oldParent = node.parent
+      this.replaceNode(node, list[l])
       node.parent?.updateWeight()
       const nextNode = list[l]
       list[l] = node
-      AHNode.ensureValid(nextNode, list)
-      if (nextNode.parent) AHNode.ensureValid(nextNode.parent)
-      if (node.parent && node.parent !== nextNode.parent) AHNode.ensureValid(node.parent)
+      this.ensureValid(nextNode)
+      oldParent?.updateWeight()
     }
   }
 }
 
-const emptyNode = new AHNode()
-let root = emptyNode
+class AHNode {
+  type: NODE_TYPE
+  value: string
+  weight: number
+  left?: AHNode
+  right?: AHNode
+  parent?: AHNode
+  tree?: AHTree
+  constructor(tree: AHTree, { type, value, weight }: { type?: NODE_TYPE; value?: string; weight?: number } = {}) {
+    this.type = type ?? NODE_TYPE.NULL
+    this.value = value ?? ''
+    this.weight = weight ?? 0
+    this.tree = tree
+  }
 
-export { AHNode }
+  isLeftChild() {
+    return this.parent && this.parent.left === this
+  }
+
+  updateWeight() {
+    const oldWeight = this.weight
+    this.weight = (this.left?.weight ?? 0) + (this.right?.weight ?? 0)
+    if (oldWeight !== this.weight) {
+      if (this.parent) {
+        this.parent.updateWeight()
+      }
+      this.tree.ensureValid(this)
+    }
+  }
+
+  isGreater(other: AHNode) {
+    return other.weight < this.weight
+  }
+}
+
+export { AHTree }
