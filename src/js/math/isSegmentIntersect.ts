@@ -1,23 +1,4 @@
-class Vec2 {
-  x: number
-  y: number
-  constructor(x: number, y: number) {
-    this.x = x
-    this.y = y
-  }
-
-  dot(other: Vec2) {
-    return this.x * other.x + this.y * other.y
-  }
-
-  len() {
-    return Math.sqrt(this.len2())
-  }
-
-  len2() {
-    return this.x * this.x + this.y * this.y
-  }
-}
+import { Vec2 } from './common'
 
 export default function isIntersect(p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2) {
   const v1 = new Vec2(p2.x - p1.x, p2.y - p1.y)
